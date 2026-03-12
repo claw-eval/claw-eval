@@ -9,11 +9,10 @@
 [![Leaderboard](https://img.shields.io/badge/leaderboard-live-purple)](https://claw-eval.github.io)
 [![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 
-> End-to-end benchmark for AI agents acting as personal assistants —<br>
-> 104 tasks, 15 mock enterprise services, Docker sandboxes, and deterministic grading.
+> End-to-end transparent benchmark for AI agents acts in the real world. <br>
+> 104 tasks, 15 services, Docker sandboxes, and robust grading.
 
 </div>
-
 
 ---
 
@@ -32,7 +31,7 @@ uv venv --python 3.11
 source .venv/bin/activate
 ```
 
-Prepare your keys and setup the environments with one command:
+Prepare your keys and set up the environments with one command:
 
 ```bash
 export OPENROUTER_API_KEY=sk-or-...
@@ -43,7 +42,7 @@ bash scripts/test_sandbox.sh
 Go rock 🚀
 
 ```bash
-claw-eval batch --config configs/opus_config.yaml --sandbox --trials 3 --parallel 60
+claw-eval batch --config model_configs/claude_opus_46.yaml --sandbox --trials 3 --parallel 16
 ```
 
 ---
@@ -62,7 +61,7 @@ We welcome any kind of contribution. Let us know if you have any suggestions!
 Our test cases are built on the work of the community. We draw from and adapt tasks contributed by OpenClaw, PinBench, OfficeQA, OneMillion-Bench, Finance Agent, and Terminal-Bench 2.0.
 
 ## Contributors
-[Bowen Ye*](https://github.com/pkuYmiracle), [Rang Li*](https://github.com/lirang04), [Qibin Yang](https://github.com/yangqibin-caibi), [Lei Li](lilei-nlp.github.io) $^\dagger$
+[Bowen Ye*](https://github.com/pkuYmiracle)(PKU), [Rang Li*](https://github.com/lirang04) (PKU), [Qibin Yang](https://github.com/yangqibin-caibi) (PKU), [Zhihui Xie](https://zhxie.site/)(HKU), [Lei Li](lilei-nlp.github.io)$^\dagger$(HKU, Project Lead)
 
-Peking University & University of Hong Kong
+
 
