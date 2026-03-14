@@ -20,6 +20,9 @@
 
 Browse the full leaderboard and individual task cases at **[claw-eval.github.io](https://claw-eval.github.io)**.
 
+**Evaluation Logic:**
+* **Current Display:** Results are based on a single trial ($N=1$).
+* **Pass Criterion (3 Trials):** For multi-trial runs, a task is marked as passed if the **mean score > 0.75**.
 
 ## Quick Start
 
