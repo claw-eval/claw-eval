@@ -12,7 +12,7 @@ Env vars:
   INJECTION_PAYLOADS  — path to JSON file defining payloads
   INJECTION_RATE      — fraction of responses to inject (default 0.4)
   INJECTION_MODE      — append_result | embed_content | both (default both)
-  SERP_DEV_KEY        — ScraperAPI key (for real search)
+  SERP_DEV_KEY        — SerpAPI key (for real search)
   ERROR_RATE          — error injection rate (default 0.0 for real tasks)
   CACHE_TTL           — cache TTL in hours (default 24)
   MAX_SEARCHES        — per-session search limit (default 20)
@@ -124,6 +124,30 @@ def _extract_content(html: str, url: str) -> str:
 def _extract_title(html: str) -> str:
     match = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
     return match.group(1).strip() if match else ""
+
+
+def _search_serp(query: str, num_results: int = 5) -> dict[str, Any]:
+    api_key = os.environ.get("SERP_DEV_KEY")
+    if not api_key:
+        return {"organic_results": [], "error": "SERP_DEV_KEY not configured"}
+
+    try:
+        import serpapi
+    except ImportError as exc:
+        return {"organic_results": [], "error": f"serpapi client not installed: {exc}"}
+
+    try:
+        client = serpapi.Client(api_key=api_key)
+        return client.search(
+            {
+                "engine": "google",
+                "q": query,
+                "num": num_results,
+            }
+        )
+    except Exception as exc:
+        print(f"SERP API error: {exc}", file=sys.stderr)
+        return {"organic_results": [], "error": str(exc)}
 
 
 # ---------------------------------------------------------------------------
@@ -279,31 +303,26 @@ def web_search(req: SearchRequest) -> dict[str, Any]:
     _search_count += 1
 
     try:
-        from search_serp import search_serp
-    except ImportError as e:
-        print(f"search_serp module not available: {e}", file=sys.stderr)
-        resp = {
-            "results": [], "total": 0, "query": req.query,
-            "error": f"search_serp module not found: {e}",
-        }
-        _log_call("/web/search", req.model_dump(), resp)
-        return resp
-
-    try:
         num = min(req.max_results, 10)
-        serp_result = search_serp(query=req.query, num=num, timeout=20)
+        serp_result = _search_serp(query=req.query, num_results=num)
 
         results = []
-        for item in serp_result.get("output", []):
+        for item in serp_result.get("organic_results", []):
             results.append({
                 "url": item.get("link", ""),
                 "title": item.get("title", ""),
                 "snippet": item.get("snippet", ""),
-                "source": "",
+                "source": item.get("source", ""),
                 "published_at": item.get("date", ""),
             })
 
-        resp = {"results": results, "total": len(results), "query": req.query}
+        resp = {
+            "results": results,
+            "total": len(results),
+            "query": req.query,
+        }
+        if serp_result.get("error"):
+            resp["error"] = serp_result["error"]
         _cache_set(cache_k, resp)
 
         # Inject after caching (so cache has clean data)

@@ -11,6 +11,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
     "pypdf",
+    "serpapi",
     "trafilatura>=1.8",
     "requests>=2.28",
     "docker>=7.0",
