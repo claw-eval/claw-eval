@@ -20,6 +20,7 @@ services:
     health_check_method: GET
     ready_timeout: 10
     reset_endpoint: http://localhost:9114/web/reset
+    env: {}
 prompt:
   text: Which company does this logo belong to? The image is at fixtures/media/image.jpg
   language: en
