@@ -153,7 +153,7 @@ def load_config(path: str | Path | None = None) -> Config:
 
     for p in candidates:
         if p.exists():
-            with open(p) as f:
+            with open(p, encoding='utf-8') as f:
                 raw = yaml.safe_load(f) or {}
             expanded = _walk_expand(raw)
             return Config.model_validate(expanded)

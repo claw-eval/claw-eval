@@ -38,7 +38,7 @@ _notifications: list[dict[str, Any]] = []
 
 def _load_fixtures() -> None:
     global _integrations
-    with open(FIXTURES_PATH) as f:
+    with open(FIXTURES_PATH, encoding='utf-8') as f:
         _integrations = json.load(f)
 
 

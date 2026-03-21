@@ -34,7 +34,7 @@ def main():
 
     # Parse recovered.json
     try:
-        with open(RECOVERED_PATH) as f:
+        with open(RECOVERED_PATH, encoding='utf-8') as f:
             recovered = json.load(f)
     except (json.JSONDecodeError, Exception) as e:
         result["parse_error"] = str(e)

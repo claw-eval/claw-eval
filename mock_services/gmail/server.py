@@ -41,7 +41,7 @@ def _load_fixtures() -> None:
     recent mail with the default ``days_back=7`` window.
     """
     global _emails
-    with open(FIXTURES_PATH) as f:
+    with open(FIXTURES_PATH, encoding='utf-8') as f:
         _emails = json.load(f)
 
     if not _emails:
