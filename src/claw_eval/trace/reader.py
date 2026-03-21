@@ -29,7 +29,7 @@ _EVENT_MAP = {
 
 def read_events(path: str | Path) -> Iterator[TraceStart | TraceMessage | ToolDispatch | AuditSnapshot | MediaLoad | TraceEnd]:
     """Parse each JSONL line by its ``type`` discriminator field."""
-    with open(path) as fh:
+    with open(path, encoding='utf-8') as fh:
         for line in fh:
             line = line.strip()
             if not line:

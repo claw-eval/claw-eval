@@ -32,7 +32,7 @@ _orders: list[dict[str, Any]] = []
 
 def _load_fixtures() -> None:
     global _products
-    with open(FIXTURES_PATH) as f:
+    with open(FIXTURES_PATH, encoding='utf-8') as f:
         _products = json.load(f)
 
 

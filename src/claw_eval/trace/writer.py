@@ -26,7 +26,7 @@ class TraceWriter:
 
     def _ensure_open(self) -> IO[str]:
         if self._fh is None or self._fh.closed:
-            self._fh = open(self.path, "a")
+            self._fh = open(self.path, "a", encoding='utf-8')
         return self._fh
 
     def write_event(self, event: TraceStart | TraceMessage | ToolDispatch | AuditSnapshot | MediaLoad | TraceEnd) -> None:

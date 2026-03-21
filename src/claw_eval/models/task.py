@@ -106,7 +106,7 @@ class TaskDefinition(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> TaskDefinition:
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = yaml.safe_load(f)
         data["task_file"] = str(Path(path).resolve())
         return cls.model_validate(data)
