@@ -39,7 +39,7 @@ def _load_fixtures() -> None:
     relative spacing intact.
     """
     global _events
-    with open(FIXTURES_PATH) as f:
+    with open(FIXTURES_PATH, encoding='utf-8') as f:
         _events = json.load(f)
 
     if not _events:

@@ -48,9 +48,9 @@ _notifications: list[dict[str, Any]] = []
 
 def _load_fixtures() -> None:
     global _search_items, _pages
-    with open(SEARCH_FIXTURES_PATH) as f:
+    with open(SEARCH_FIXTURES_PATH, encoding='utf-8') as f:
         _search_items = json.load(f)
-    with open(FETCH_FIXTURES_PATH) as f:
+    with open(FETCH_FIXTURES_PATH, encoding='utf-8') as f:
         _pages = json.load(f)
 
 

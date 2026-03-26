@@ -684,7 +684,7 @@ def _append_grading_to_trace(
         task_score=task_score,
         passed=passed,
     )
-    with open(trace_path, "a") as fh:
+    with open(trace_path, "a", encoding='utf-8') as fh:
         fh.write(event.model_dump_json() + "\n")
 
 
@@ -911,7 +911,7 @@ def _scan_completed_trials(trace_dir: Path) -> dict[str, int]:
 
     completed: dict[str, int] = defaultdict(int)
     for f in trace_dir.glob("*.jsonl"):
-        with open(f) as fh:
+        with open(f, encoding='utf-8') as fh:
             for line in fh:
                 line = line.strip()
                 if not line:
@@ -1039,7 +1039,7 @@ def cmd_batch(args: argparse.Namespace) -> None:
         if not prev_results_file.exists():
             print(f"batch_results.json not found in {rerun_path}")
             sys.exit(1)
-        with open(prev_results_file) as f:
+        with open(prev_results_file, encoding='utf-8') as f:
             prev_results = json.load(f)
         errored_task_ids = {r["task_id"] for r in prev_results if r.get("error")}
         if not errored_task_ids:
@@ -1223,7 +1223,7 @@ def cmd_batch(args: argparse.Namespace) -> None:
                 _partial_out.mkdir(parents=True, exist_ok=True)
                 _partial_file = _partial_out / "batch_results.json"
                 try:
-                    with open(_partial_file, "w") as _pf:
+                    with open(_partial_file, "w", encoding='utf-8') as _pf:
                         json.dump(results, _pf, indent=2, ensure_ascii=False)
                 except Exception:
                     pass  # best-effort; don't crash on incremental write failure
@@ -1407,7 +1407,7 @@ def cmd_batch(args: argparse.Namespace) -> None:
     out_dir = Path(batch_trace_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     results_file = out_dir / "batch_results.json"
-    with open(results_file, "w") as f:
+    with open(results_file, "w", encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     summary_file = out_dir / "batch_summary.json"
     summary_data = {
@@ -1427,7 +1427,7 @@ def cmd_batch(args: argparse.Namespace) -> None:
         "total_other_time_s": total_other_time_s,
         "total_wall_time_s": total_wall_time_s,
     }
-    with open(summary_file, "w") as f:
+    with open(summary_file, "w", encoding='utf-8') as f:
         json.dump(summary_data, f, indent=2, ensure_ascii=False)
     print(f"\n  Results saved to {results_file}")
     print(f"  Summary saved to {summary_file}")

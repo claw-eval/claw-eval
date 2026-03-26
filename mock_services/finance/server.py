@@ -32,7 +32,7 @@ _submitted_reports: list[dict[str, Any]] = []
 
 def _load_fixtures() -> None:
     global _transactions
-    with open(FIXTURES_PATH) as f:
+    with open(FIXTURES_PATH, encoding='utf-8') as f:
         _transactions = json.load(f)
 
 
