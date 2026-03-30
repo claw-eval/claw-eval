@@ -59,6 +59,8 @@ export SERP_DEV_KEY=... # add this for tasks need real web search
 bash scripts/test_sandbox.sh
 ```
 
+> **Note on video fixtures:** Due to file size limits, this GitHub repository does not include video files for video-related tasks. The complete fixtures (including all videos) are available on Hugging Face: [claw-eval/Claw-Eval](https://huggingface.co/datasets/claw-eval/Claw-Eval).
+
 Go rock 🚀
 
 ```bash
