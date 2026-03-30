@@ -101,7 +101,7 @@ def _grade_with_optional_params(
     if "env_snapshot" in params and env_snapshot is not None:
         kwargs["env_snapshot"] = env_snapshot
     scores = grader.grade(messages, dispatches, task, **kwargs)
-    return scores
+    return AbstractGrader.apply_declared_task_checks(scores, task, messages, dispatches)
 
 
 def _collect_env_snapshot(sandbox_url: str, task) -> dict:
