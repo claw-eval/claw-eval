@@ -67,7 +67,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames, identify teams, sport event,
+  Use ReadMedia to extract frames, identify teams, sport event,
   scoreboard, scoring team members, and provide detailed info about red team.
 primary_dimensions:
   - completion

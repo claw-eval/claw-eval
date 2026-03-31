@@ -1109,6 +1109,19 @@ def cmd_batch(args: argparse.Namespace) -> None:
                 filtered.append(d)
         task_dirs = filtered
 
+    if getattr(args, "range", None):
+        import re as _re
+        _m = _re.match(r"(\d+)-(\d+)$", args.range)
+        if not _m:
+            print(f"[ERROR] Invalid --range format: {args.range}  (expected L-R, e.g. 1-104)")
+            sys.exit(1)
+        lo, hi = int(_m.group(1)), int(_m.group(2))
+        def _in_range(d):
+            name = Path(d).name
+            m = _re.match(r"T(\d+)", name)
+            return m is not None and lo <= int(m.group(1)) <= hi
+        task_dirs = [d for d in task_dirs if _in_range(d)]
+
     # If rerunning errors, only keep the errored task dirs
     if errored_task_ids:
         task_dirs = [d for d in task_dirs if Path(d).name in errored_task_ids]
@@ -1542,6 +1555,7 @@ def main(argv: list[str] | None = None) -> None:
     p_batch.add_argument("--tasks-dir", default="tasks", help="Tasks directory")
     p_batch.add_argument("--filter", default=None, help="Only run tasks matching this substring (e.g. 'en_' or 'T01')")
     p_batch.add_argument("--tag", default=None, help="Only run tasks with this tag (e.g. 'multimodal', 'general')")
+    p_batch.add_argument("--range", default=None, help="Only run tasks in numeric ID range (e.g. '1-104')")
     p_batch.add_argument("--parallel", type=int, default=4, help="Number of parallel workers (default: 4)")
     p_batch.add_argument("--model", default=None)
     p_batch.add_argument("--api-key", default=None)

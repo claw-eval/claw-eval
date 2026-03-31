@@ -29,7 +29,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames from the tennis video.
+  Use ReadMedia to extract frames from the tennis video.
   Identify players, set, scores before/after, winner, and count total shots.
 primary_dimensions:
   - completion

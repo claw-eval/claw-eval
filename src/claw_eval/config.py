@@ -130,7 +130,7 @@ class MediaConfig(BaseModel):
     max_files: int = 6
     max_bytes_per_file: int = 8 * 1024 * 1024
     image_max_dimension: int = 2048
-    # Tool-media injection settings (for sandbox_read_media / sandbox_pdf2image)
+    # Tool-media injection settings (for ReadMedia / Read with image/PDF)
     inject_tool_media: bool = True
     max_images_per_turn: int = 16
     max_tool_images_total: int = 64

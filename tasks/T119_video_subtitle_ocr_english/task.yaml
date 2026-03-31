@@ -32,7 +32,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames from 0:25-0:30 segment.
+  Use ReadMedia to extract frames from 0:25-0:30 segment.
   OCR the flashing text, deduplicate lingering words, output in order.
 primary_dimensions:
   - completion

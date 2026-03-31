@@ -28,7 +28,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames from the video.
+  Use ReadMedia to extract frames from the video.
   Identify movies from visual cues, list them in chronological order.
 primary_dimensions:
   - completion

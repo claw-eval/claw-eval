@@ -50,7 +50,7 @@ class LlamaCudaBugGrader(AbstractGrader):
         search_calls = [d for d in dispatches if d.tool_name == "web_search"]
         unique_searches = len({d.request_body.get("query", "") for d in search_calls})
         fetch_calls_count = len([d for d in dispatches if d.tool_name == "web_fetch"])
-        sandbox_calls = len([d for d in dispatches if d.tool_name == "sandbox_shell_exec"])
+        sandbox_calls = len([d for d in dispatches if d.tool_name == "Bash"])
         tool_effort = min((unique_searches + fetch_calls_count + sandbox_calls) / 2, 1.0)
 
         judged = judge.evaluate(

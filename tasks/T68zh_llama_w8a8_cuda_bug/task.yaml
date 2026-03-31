@@ -66,18 +66,20 @@ prompt:
   language: zh
 
 tools:
-  - name: sandbox_shell_exec
-    description: Execute a shell command in a sandboxed environment and return stdout/stderr.
+  - name: Bash
+    description: Executes a given bash command and returns its output.
     input_schema:
       type: object
       properties:
         command:
           type: string
-          description: Shell command to execute
-        timeout_seconds:
+          description: The command to execute
+        description:
+          type: string
+          description: Clear, concise description of what this command does
+        timeout:
           type: integer
-          description: Execution timeout in seconds
-          default: 30
+          description: Optional timeout in milliseconds (max 600000)
       required: [command]
 
   - name: web_search

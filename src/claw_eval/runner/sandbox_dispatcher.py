@@ -1,6 +1,6 @@
 """Sandbox-aware tool dispatcher.
 
-Routes ``sandbox_*`` tool calls either:
+Routes sandbox tool calls either:
   - Over HTTP to a remote sandbox container (when *sandbox_url* is provided), OR
   - Locally via subprocess/filesystem (fallback for backward compatibility).
 
@@ -17,9 +17,12 @@ from pathlib import Path
 from ..models.content import ImageBlock, TextBlock, ToolResultBlock, ToolUseBlock
 from ..models.trace import ToolDispatch
 from .dispatcher import ToolDispatcher
+from .sandbox_tools import SANDBOX_TOOL_NAMES
 
-# Tools whose responses contain extractable image frames
-_MEDIA_TOOLS = frozenset({"sandbox_read_media", "sandbox_pdf2image", "sandbox_browser_screenshot"})
+# Tools whose responses always contain extractable image frames
+_ALWAYS_MEDIA_TOOLS = frozenset({"ReadMedia", "BrowserScreenshot"})
+# Tools that conditionally return frames (e.g. Read with image/PDF)
+_CONDITIONAL_MEDIA_TOOLS = frozenset({"Read"})
 
 
 class SandboxToolDispatcher:
@@ -41,7 +44,7 @@ class SandboxToolDispatcher:
     def dispatch(
         self, tool_use: ToolUseBlock, trace_id: str
     ) -> tuple[ToolResultBlock, ToolDispatch, list[ImageBlock] | None]:
-        if tool_use.name.startswith("sandbox_"):
+        if tool_use.name in SANDBOX_TOOL_NAMES:
             return self._dispatch_sandbox(tool_use, trace_id)
         result, event = self._http.dispatch(tool_use, trace_id)
         return result, event, None
@@ -63,13 +66,15 @@ class SandboxToolDispatcher:
     # ---- remote mode: HTTP to container ----------------------------------
 
     _PATH_MAP = {
-        "sandbox_shell_exec": "/exec",
-        "sandbox_file_read": "/read",
-        "sandbox_file_write": "/write",
-        "sandbox_browser_screenshot": "/screenshot",
-        "sandbox_read_media": "/read_media",
-        "sandbox_pdf2image": "/pdf2image",
-        "sandbox_file_download": "/download",
+        "Bash": "/exec",
+        "Read": "/read",
+        "Write": "/write",
+        "Edit": "/edit",
+        "Glob": "/glob",
+        "Grep": "/grep",
+        "BrowserScreenshot": "/screenshot",
+        "ReadMedia": "/read_media",
+        "Download": "/download",
     }
 
     def _get_client(self):
@@ -77,6 +82,30 @@ class SandboxToolDispatcher:
             import httpx
             self._client = httpx.Client(timeout=120.0)
         return self._client
+
+    @staticmethod
+    def _translate_payload(tool_use: ToolUseBlock) -> dict:
+        """Translate client-facing param names to server-side param names."""
+        payload = dict(tool_use.input)
+        if tool_use.name == "Bash":
+            if "timeout" in payload:
+                payload["timeout_seconds"] = max(1, payload.pop("timeout") // 1000)
+            payload.pop("description", None)
+            payload.pop("run_in_background", None)
+        elif tool_use.name in ("Read", "Write", "Edit"):
+            if "file_path" in payload:
+                payload["path"] = payload.pop("file_path")
+        elif tool_use.name == "Grep":
+            # Translate Claude Code param names to server grep params
+            if "case_insensitive" in payload:
+                payload["case_insensitive"] = payload.pop("case_insensitive")
+            if "context_lines" in payload:
+                payload["context_lines"] = payload.pop("context_lines")
+            if "after_context" in payload:
+                payload["after_context"] = payload.pop("after_context")
+            if "before_context" in payload:
+                payload["before_context"] = payload.pop("before_context")
+        return payload
 
     def _dispatch_remote(
         self, tool_use: ToolUseBlock, trace_id: str
@@ -90,10 +119,11 @@ class SandboxToolDispatcher:
             )
 
         endpoint_url = f"{self._sandbox_url}{path}"
+        payload = self._translate_payload(tool_use)
         t0 = time.monotonic()
         try:
             client = self._get_client()
-            resp = client.post(endpoint_url, json=tool_use.input)
+            resp = client.post(endpoint_url, json=payload)
             latency_ms = (time.monotonic() - t0) * 1000
             body = resp.json()
             is_error = resp.status_code >= 400
@@ -107,7 +137,11 @@ class SandboxToolDispatcher:
 
         # Extract images from media tool responses
         extra_images: list[ImageBlock] | None = None
-        if tool_use.name in _MEDIA_TOOLS and not is_error:
+        is_media_response = (
+            tool_use.name in _ALWAYS_MEDIA_TOOLS
+            or (tool_use.name in _CONDITIONAL_MEDIA_TOOLS and "frames" in body)
+        )
+        if is_media_response and not is_error:
             extra_images = []
             frames = body.get("frames", [])
             for frame in frames:
@@ -146,13 +180,15 @@ class SandboxToolDispatcher:
     # ---- local mode: subprocess/filesystem (backward compat) -------------
 
     _LOCAL_HANDLERS: dict[str, str] = {
-        "sandbox_shell_exec": "_handle_shell_exec",
-        "sandbox_file_read": "_handle_file_read",
-        "sandbox_file_write": "_handle_file_write",
-        "sandbox_browser_screenshot": "_handle_browser_screenshot",
-        "sandbox_read_media": "_handle_not_available",
-        "sandbox_pdf2image": "_handle_not_available",
-        "sandbox_file_download": "_handle_not_available",
+        "Bash": "_handle_shell_exec",
+        "Read": "_handle_file_read",
+        "Write": "_handle_file_write",
+        "Edit": "_handle_edit",
+        "Glob": "_handle_glob",
+        "Grep": "_handle_grep",
+        "BrowserScreenshot": "_handle_browser_screenshot",
+        "ReadMedia": "_handle_not_available",
+        "Download": "_handle_not_available",
     }
 
     def _dispatch_local(
@@ -181,7 +217,7 @@ class SandboxToolDispatcher:
                 trace_id=trace_id,
                 tool_use_id=tool_use.id,
                 tool_name=tool_use.name,
-                endpoint_url=f"local://sandbox/{tool_use.name.removeprefix('sandbox_')}",
+                endpoint_url=f"local://sandbox/{tool_use.name}",
                 request_body=tool_use.input,
                 response_status=200,
                 response_body=body,
@@ -196,12 +232,17 @@ class SandboxToolDispatcher:
 
         return result, dispatch_event, None
 
-    # ---- local handlers (unchanged from original) ------------------------
+    # ---- local handlers --------------------------------------------------
 
     @staticmethod
     def _handle_shell_exec(inp: dict) -> dict:
         command = inp["command"]
-        timeout = inp.get("timeout_seconds", 30)
+        # Accept timeout in ms (Claude Code style) or seconds (legacy)
+        timeout_ms = inp.get("timeout")
+        if timeout_ms is not None:
+            timeout = max(1, timeout_ms // 1000)
+        else:
+            timeout = inp.get("timeout_seconds", 30)
         try:
             proc = subprocess.run(
                 command,
@@ -224,17 +265,111 @@ class SandboxToolDispatcher:
 
     @staticmethod
     def _handle_file_read(inp: dict) -> dict:
-        path = Path(inp["path"])
+        raw_path = inp.get("file_path") or inp.get("path")
+        if not raw_path:
+            return {"error": "Missing file_path or path parameter."}
+        path = Path(raw_path)
         if not path.exists():
             return {"error": f"File not found: {path}"}
-        return {"content": path.read_text(encoding="utf-8", errors="replace")}
+        content = path.read_text(encoding="utf-8", errors="replace")
+        offset = inp.get("offset")
+        limit = inp.get("limit")
+        if offset is not None or limit is not None:
+            lines = content.splitlines(keepends=True)
+            start = (offset - 1) if offset and offset >= 1 else 0
+            end = (start + limit) if limit else len(lines)
+            selected = lines[start:end]
+            # Format with cat -n style line numbers
+            numbered = []
+            for i, line in enumerate(selected, start=start + 1):
+                numbered.append(f"     {i}\t{line.rstrip()}")
+            return {"content": "\n".join(numbered)}
+        return {"content": content}
 
     @staticmethod
     def _handle_file_write(inp: dict) -> dict:
-        path = Path(inp["path"])
+        raw_path = inp.get("file_path") or inp.get("path")
+        if not raw_path:
+            return {"error": "Missing file_path or path parameter."}
+        path = Path(raw_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(inp["content"], encoding="utf-8")
         return {"written": str(path), "bytes": len(inp["content"])}
+
+    @staticmethod
+    def _handle_edit(inp: dict) -> dict:
+        raw_path = inp.get("file_path") or inp.get("path")
+        if not raw_path:
+            return {"error": "Missing file_path or path parameter."}
+        path = Path(raw_path)
+        if not path.exists():
+            return {"error": f"File not found: {path}"}
+        content = path.read_text(encoding="utf-8", errors="replace")
+        old_string = inp["old_string"]
+        new_string = inp["new_string"]
+        replace_all = inp.get("replace_all", False)
+        count = content.count(old_string)
+        if count == 0:
+            return {"error": f"old_string not found in {path}"}
+        if count > 1 and not replace_all:
+            return {"error": f"old_string found {count} times in {path}. Use replace_all=true to replace all."}
+        if replace_all:
+            new_content = content.replace(old_string, new_string)
+        else:
+            new_content = content.replace(old_string, new_string, 1)
+        path.write_text(new_content, encoding="utf-8")
+        return {"edited": str(path), "replacements": count if replace_all else 1}
+
+    @staticmethod
+    def _handle_glob(inp: dict) -> dict:
+        import glob as _glob
+        pattern = inp["pattern"]
+        base_path = inp.get("path")
+        if base_path:
+            full_pattern = str(Path(base_path) / pattern)
+        else:
+            full_pattern = pattern
+        matches = sorted(_glob.glob(full_pattern, recursive=True))
+        files = [m for m in matches[:50] if Path(m).is_file()]
+        return {"files": files}
+
+    @staticmethod
+    def _handle_grep(inp: dict) -> dict:
+        pattern = inp["pattern"]
+        path = inp.get("path", ".")
+        cmd = ["grep", "-rP"]
+        if inp.get("case_insensitive"):
+            cmd.append("-i")
+        output_mode = inp.get("output_mode", "files_with_matches")
+        if output_mode == "files_with_matches":
+            cmd.append("-l")
+        elif output_mode == "count":
+            cmd.append("-c")
+        context = inp.get("context_lines")
+        if context:
+            cmd.extend(["-C", str(context)])
+        after = inp.get("after_context")
+        if after:
+            cmd.extend(["-A", str(after)])
+        before = inp.get("before_context")
+        if before:
+            cmd.extend(["-B", str(before)])
+        glob_filter = inp.get("glob")
+        if glob_filter:
+            cmd.extend(["--include", glob_filter])
+        head_limit = inp.get("head_limit")
+        cmd.extend([pattern, path])
+        try:
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30,
+            )
+            output = proc.stdout
+            if head_limit and head_limit > 0:
+                lines = output.splitlines()[:head_limit]
+                output = "\n".join(lines)
+            return {"output": output, "exit_code": proc.returncode}
+        except subprocess.TimeoutExpired:
+            return {"error": "Grep timed out after 30s"}
 
     @staticmethod
     def _handle_browser_screenshot(inp: dict) -> dict:
@@ -289,7 +424,7 @@ class SandboxToolDispatcher:
             trace_id=trace_id,
             tool_use_id=tool_use.id,
             tool_name=tool_use.name,
-            endpoint_url=endpoint_url or f"local://sandbox/{tool_use.name.removeprefix('sandbox_')}",
+            endpoint_url=endpoint_url or f"local://sandbox/{tool_use.name}",
             request_body=tool_use.input,
             response_status=status,
             response_body={"error": error_msg},

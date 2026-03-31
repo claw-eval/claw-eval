@@ -50,7 +50,7 @@ expected_actions: []
 
 judge_rubric: ""
 reference_solution: |
-  Read mariage1.png using sandbox_read_media, analyze sheet music.
+  Read mariage1.png using Read, analyze sheet music.
   Create SVG-based output.html reproducing the score with staves, clefs, notes.
 
 primary_dimensions: [completion, robustness]

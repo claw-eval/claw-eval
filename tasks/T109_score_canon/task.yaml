@@ -50,7 +50,7 @@ expected_actions: []
 
 judge_rubric: ""
 reference_solution: |
-  Read Canon1.png using sandbox_read_media, analyze the sheet music structure.
+  Read Canon1.png using Read, analyze the sheet music structure.
   Create SVG-based output.html reproducing staves, clefs, key/time signatures, and notes.
 
 primary_dimensions: [completion, robustness]

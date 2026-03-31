@@ -33,11 +33,16 @@ class ExecRequest(BaseModel):
 
 
 class FileReadRequest(BaseModel):
-    path: str
+    path: str = ""
+    file_path: str | None = None
+    offset: int | None = None
+    limit: int | None = None
+    pages: str | None = None  # PDF page range (e.g. "1-5", "3", "1,3,5")
 
 
 class FileWriteRequest(BaseModel):
-    path: str
+    path: str = ""
+    file_path: str | None = None
     content: str
 
 
@@ -56,6 +61,7 @@ class ScreenshotRequest(BaseModel):
 
 class GlobRequest(BaseModel):
     pattern: str
+    path: str | None = None
     max_files: int = 50
 
 
@@ -83,6 +89,27 @@ class Pdf2ImageRequest(BaseModel):
 class DownloadRequest(BaseModel):
     path: str
     max_bytes: int = 50_000_000  # 50MB cap
+
+
+class EditRequest(BaseModel):
+    path: str = ""
+    file_path: str | None = None
+    old_string: str
+    new_string: str
+    replace_all: bool = False
+
+
+class GrepRequest(BaseModel):
+    pattern: str
+    path: str = "/workspace"
+    glob: str | None = None
+    output_mode: str = "files_with_matches"  # "content", "files_with_matches", "count"
+    case_insensitive: bool = False
+    context_lines: int | None = None
+    after_context: int | None = None
+    before_context: int | None = None
+    head_limit: int | None = None
+    multiline: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -125,18 +152,34 @@ _TEXT_EXTENSIONS = {
     ".cfg", ".ini", ".toml", ".log", ".sql", ".r", ".rmd",
 }
 
+# Image/video extensions (used by /read to detect media files)
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".svg"}
+_VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv", ".wmv", ".m4v"}
+
 
 @app.post("/read")
 def read_file(req: FileReadRequest):
-    p = Path(req.path)
+    raw_path = req.file_path or req.path
+    if not raw_path:
+        return {"error": "Missing path or file_path parameter."}
+    p = Path(raw_path)
     if not p.exists():
         return {"error": f"File not found: {p}"}
     try:
         p.resolve().relative_to(WORKSPACE_ROOT)
     except ValueError:
         logger.warning("read outside workspace: %s", p)
-    mime, _ = mimetypes.guess_type(str(p))
     ext = p.suffix.lower()
+
+    # Image files → return frames (triggers media injection in dispatcher)
+    if ext in _IMAGE_EXTS:
+        return _read_image(p, None)
+
+    # PDF files with pages param → render as images
+    if ext == ".pdf" and req.pages:
+        return _read_pdf(p, req.pages, 150)
+
+    mime, _ = mimetypes.guess_type(str(p))
     # Known text mime OR known text extension → text; otherwise binary.
     # mime=None with unknown extension defaults to binary (safer).
     is_text = (
@@ -145,8 +188,20 @@ def read_file(req: FileReadRequest):
         or (mime is None and ext in _TEXT_EXTENSIONS)
     )
     if is_text:
+        content = p.read_text(encoding="utf-8", errors="replace")
+        # Apply offset/limit if provided
+        if req.offset is not None or req.limit is not None:
+            lines = content.splitlines(keepends=True)
+            start = (req.offset - 1) if req.offset and req.offset >= 1 else 0
+            end = (start + req.limit) if req.limit else len(lines)
+            selected = lines[start:end]
+            # Format with cat -n style line numbers
+            numbered = []
+            for i, line in enumerate(selected, start=start + 1):
+                numbered.append(f"     {i}\t{line.rstrip()}")
+            content = "\n".join(numbered)
         return {
-            "content": p.read_text(encoding="utf-8", errors="replace"),
+            "content": content,
             "mime_type": mime or "text/plain",
             "encoding": "utf-8",
         }
@@ -162,7 +217,10 @@ def read_file(req: FileReadRequest):
 
 @app.post("/write")
 def write_file(req: FileWriteRequest):
-    p = Path(req.path)
+    raw_path = req.file_path or req.path
+    if not raw_path:
+        return {"error": "Missing path or file_path parameter."}
+    p = Path(raw_path)
     try:
         p.resolve().relative_to(WORKSPACE_ROOT)
     except ValueError:
@@ -189,7 +247,10 @@ def write_file_b64(req: FileWriteB64Request):
 @app.post("/glob")
 def glob_files(req: GlobRequest):
     """List files matching a glob pattern (supports env snapshot collection)."""
-    matches = sorted(_glob.glob(req.pattern, recursive=True))
+    pattern = req.pattern
+    if req.path:
+        pattern = str(Path(req.path) / pattern)
+    matches = sorted(_glob.glob(pattern, recursive=True))
     results = []
     for m in matches[: req.max_files]:
         p = Path(m)
@@ -201,6 +262,67 @@ def glob_files(req: GlobRequest):
                 "mime_type": mime or "unknown",
             })
     return {"files": results}
+
+
+@app.post("/edit")
+def edit_file(req: EditRequest):
+    """Perform exact string replacement in a file."""
+    raw_path = req.file_path or req.path
+    if not raw_path:
+        return {"error": "Missing path or file_path parameter."}
+    p = Path(raw_path)
+    if not p.exists():
+        return {"error": f"File not found: {p}"}
+    try:
+        p.resolve().relative_to(WORKSPACE_ROOT)
+    except ValueError:
+        logger.warning("edit outside workspace: %s", p)
+    content = p.read_text(encoding="utf-8", errors="replace")
+    count = content.count(req.old_string)
+    if count == 0:
+        return {"error": f"old_string not found in {p}"}
+    if count > 1 and not req.replace_all:
+        return {"error": f"old_string found {count} times in {p}. Use replace_all=true to replace all."}
+    if req.replace_all:
+        new_content = content.replace(req.old_string, req.new_string)
+    else:
+        new_content = content.replace(req.old_string, req.new_string, 1)
+    p.write_text(new_content, encoding="utf-8")
+    return {"edited": str(p), "replacements": count if req.replace_all else 1}
+
+
+@app.post("/grep")
+def grep_files(req: GrepRequest):
+    """Search for patterns in file contents using grep."""
+    cmd = ["grep", "-rP"]
+    if req.case_insensitive:
+        cmd.append("-i")
+    if req.output_mode == "files_with_matches":
+        cmd.append("-l")
+    elif req.output_mode == "count":
+        cmd.append("-c")
+    elif req.output_mode == "content":
+        cmd.append("-n")
+    if req.multiline:
+        cmd.append("-z")
+    if req.context_lines is not None:
+        cmd.extend(["-C", str(req.context_lines)])
+    if req.after_context is not None:
+        cmd.extend(["-A", str(req.after_context)])
+    if req.before_context is not None:
+        cmd.extend(["-B", str(req.before_context)])
+    if req.glob:
+        cmd.extend(["--include", req.glob])
+    cmd.extend([req.pattern, req.path])
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        output = proc.stdout
+        if req.head_limit and req.head_limit > 0:
+            lines = output.splitlines()[:req.head_limit]
+            output = "\n".join(lines)
+        return {"output": output, "exit_code": proc.returncode}
+    except subprocess.TimeoutExpired:
+        return {"error": "Grep timed out after 30s"}
 
 
 @app.post("/screenshot")
@@ -260,10 +382,6 @@ def screenshot(req: ScreenshotRequest):
 # ---------------------------------------------------------------------------
 # Media endpoints
 # ---------------------------------------------------------------------------
-
-_VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv", ".wmv", ".m4v"}
-_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".svg"}
-
 
 def _detect_media_type(path: Path, hint: str) -> str:
     """Detect media type from file extension or hint."""

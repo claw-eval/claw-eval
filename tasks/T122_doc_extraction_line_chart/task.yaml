@@ -36,7 +36,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Download PDF via curl, read tables with sandbox_read_media or pdf2image,
+  Download PDF via curl, read tables with Read,
   extract VILA-1.5 and Gemini 1.5 Pro "w/ subs" scores, save CSV, plot line chart.
 primary_dimensions:
   - completion

@@ -28,7 +28,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames from the Henan food video.
+  Use ReadMedia to extract frames from the Henan food video.
   Identify each dish, craftsman name/generation, cooking method, and taste.
   Format as markdown memo.
 primary_dimensions:

@@ -33,7 +33,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames from the tennis video.
+  Use ReadMedia to extract frames from the tennis video.
   Locate the point at Set 0:1, Game 4:5, Point 0:15.
   Identify server, log each shot with player and stroke type, count total, identify winner.
 primary_dimensions:

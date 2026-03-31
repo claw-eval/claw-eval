@@ -67,7 +67,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames from the paper presentation video.
+  Use ReadMedia to extract frames from the paper presentation video.
   Identify paper title, explain Meta Queries mechanism and formulas, check open-source status.
 primary_dimensions:
   - completion

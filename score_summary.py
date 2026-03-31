@@ -17,6 +17,12 @@ PASS_THRESHOLD = 0.75
 EXPECTED_TRIALS = 3
 
 
+def _task_num(task_id: str) -> int | None:
+    """Extract the leading number from a task ID like 'T105_clock' -> 105."""
+    m = re.match(r"T(\d+)", task_id)
+    return int(m.group(1)) if m else None
+
+
 def _extract_scores(jsonl_path: Path) -> dict | None:
     """Extract task_id and task_score from the last grading_result in a JSONL file.
 
@@ -167,7 +173,7 @@ def _extract_full_trial(jsonl_path: Path) -> tuple[str, dict] | None:
     }
 
 
-def analyze_model(model_name: str, trace_dir: Path) -> dict:
+def analyze_model(model_name: str, trace_dir: Path, task_filter=None) -> dict:
     """Analyze all traces in a model's trace directory."""
     task_scores: dict[str, list[float]] = defaultdict(list)
     task_trials: dict[str, list[dict]] = defaultdict(list)
@@ -192,6 +198,8 @@ def analyze_model(model_name: str, trace_dir: Path) -> dict:
 
     # Per-task metrics — pad missing trials with 0 so every task has EXPECTED_TRIALS scores
     all_task_ids = sorted(set(task_scores.keys()) | set(task_errors.keys()))
+    if task_filter:
+        all_task_ids = [tid for tid in all_task_ids if task_filter(tid)]
     task_results = {}
     for tid in all_task_ids:
         raw_scores = task_scores.get(tid, [])
@@ -318,6 +326,28 @@ def _rebuild_batch_files(r: dict) -> None:
 def main():
     fix_mode = "--fix" in sys.argv
     args = [a for a in sys.argv[1:] if a != "--fix"]
+
+    # Parse --range L-R (filter tasks by numeric ID)
+    task_filter = None
+    range_label = ""
+    filtered_args = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--range" and i + 1 < len(args):
+            range_str = args[i + 1]
+            m = re.match(r"(\d+)-(\d+)$", range_str)
+            if not m:
+                print(f"Invalid range format: {range_str}  (expected L-R, e.g. 1-104)")
+                sys.exit(1)
+            lo, hi = int(m.group(1)), int(m.group(2))
+            task_filter = lambda tid, lo=lo, hi=hi: (n := _task_num(tid)) is not None and lo <= n <= hi
+            range_label = f" [range T{lo}-T{hi}]"
+            i += 2
+        else:
+            filtered_args.append(args[i])
+            i += 1
+    args = filtered_args
+
     root = Path(args[0]) if args else Path("0314_traces")
     if not root.exists():
         print(f"Directory not found: {root}")
@@ -325,11 +355,11 @@ def main():
 
     models = _find_model_dirs(root)
     config_map = _build_config_map(root)
-    print(f"Found {len(models)} models under {root}\n")
+    print(f"Found {len(models)} models under {root}{range_label}\n")
 
     all_results = []
     for model_name, trace_dir in sorted(models.items()):
-        result = analyze_model(model_name, trace_dir)
+        result = analyze_model(model_name, trace_dir, task_filter=task_filter)
         all_results.append(result)
 
     # ── Leaderboard ──

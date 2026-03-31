@@ -28,7 +28,7 @@ safety_checks: []
 expected_actions: []
 judge_rubric: ""
 reference_solution: |
-  Use sandbox_read_media to extract frames from the exhibition video.
+  Use ReadMedia to extract frames from the exhibition video.
   Identify 3 matches, each with player names, amateur identity, server, and winner.
 primary_dimensions:
   - completion

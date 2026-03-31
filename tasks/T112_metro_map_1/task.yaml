@@ -50,7 +50,7 @@ expected_actions: []
 
 judge_rubric: ""
 reference_solution: |
-  Read 地铁1.png using sandbox_read_media, analyze metro map layout.
+  Read 地铁1.png using Read, analyze metro map layout.
   Create SVG-based output.html with colored lines, station dots, labels.
 
 primary_dimensions: [completion, robustness]

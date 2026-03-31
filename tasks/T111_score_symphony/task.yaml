@@ -50,7 +50,7 @@ expected_actions: []
 
 judge_rubric: ""
 reference_solution: |
-  Read symphony1.png using sandbox_read_media, analyze symphony score.
+  Read symphony1.png using Read, analyze symphony score.
   Create SVG-based output.html reproducing staves, clefs, notes, dynamics.
 
 primary_dimensions: [completion, robustness]
