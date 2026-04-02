@@ -101,6 +101,9 @@ class TraceEnd(BaseModel):
     task_score: float = 0.0
     passed: bool = False
     failure_modes: list[str] = Field(default_factory=list)
+    user_agent_rounds: int = 0
+    user_agent_max_rounds: int = 0
+    user_agent_done: bool = False
     timestamp: str = Field(default_factory=_now)
 
 
@@ -123,6 +126,8 @@ class GradingResult(BaseModel):
     task_score: float = 0.0
     passed: bool = False
     failure_modes: list[str] = Field(default_factory=list)
+    judge_calls: list[dict] = Field(default_factory=list)
+    user_agent_meta: dict = Field(default_factory=dict)
     timestamp: str = Field(default_factory=_now)
 
 

@@ -10,6 +10,8 @@ import time
 from openai import OpenAI
 from pydantic import BaseModel
 
+from ..models.trace import _now
+
 
 class JudgeResult(BaseModel):
     score: float  # 0.0-1.0
@@ -55,6 +57,7 @@ class LLMJudge:
     ) -> None:
         self.client = OpenAI(api_key=api_key or "dummy", base_url=base_url)
         self.model_id = model_id
+        self._call_log: list[dict] = []
 
     def evaluate(
         self,
@@ -105,10 +108,18 @@ class LLMJudge:
                     else:
                         raise json.JSONDecodeError("No score found in raw", raw, 0)
 
-                return JudgeResult(
+                result = JudgeResult(
                     score=max(0.0, min(1.0, float(score))),
                     reasoning=str(reasoning),
                 )
+                self._call_log.append({
+                    "method": "evaluate",
+                    "rubric_preview": rubric[:300],
+                    "score": result.score,
+                    "reasoning": result.reasoning,
+                    "timestamp": _now(),
+                })
+                return result
             except Exception as exc:
                 last_exc = exc
                 status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
@@ -202,6 +213,16 @@ class LLMJudge:
                     score=max(0.0, min(1.0, float(score))),
                     reasoning=str(reasoning),
                 )
+                self._call_log.append({
+                    "method": "evaluate_visual",
+                    "rubric_preview": rubric[:300],
+                    "n_ref_images": len(reference_images_b64),
+                    "n_cand_images": len(candidate_images_b64),
+                    "context_preview": context[:200],
+                    "score": result.score,
+                    "reasoning": result.reasoning,
+                    "timestamp": _now(),
+                })
                 print(f"[judge-visual] score={result.score:.2f} reasoning={result.reasoning[:200]}")
                 return result
             except Exception as exc:
@@ -211,3 +232,9 @@ class LLMJudge:
                 print(f"[judge-visual-retry] ({status or type(exc).__name__}), "
                       f"attempt {attempt + 1}/{max_retries}, waiting {delay:.1f}s ...")
                 time.sleep(delay)
+
+    def get_call_log(self) -> list[dict]:
+        return list(self._call_log)
+
+    def reset_call_log(self) -> None:
+        self._call_log.clear()

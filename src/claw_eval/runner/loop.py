@@ -225,6 +225,7 @@ def run_task(
 
     # User agent state
     user_agent_rounds = 0
+    ua_done = False
     ua_cfg = task.user_agent
     ua_enabled = ua_cfg.enabled and user_agent is not None
     ua_max_rounds = ua_cfg.max_rounds if ua_enabled else 0
@@ -358,6 +359,7 @@ def run_task(
                             conversation_messages=messages,
                         )
                         if ua_text is None:
+                            ua_done = True
                             _log(f"[user-agent] user satisfied — ending at turn {turn_count}")
                             break
                         user_agent_rounds += 1
@@ -496,6 +498,9 @@ def run_task(
             other_time_s=round(other_time_s, 2),
             wall_time_s=round(wall_time, 2),
             failure_modes=failure_modes,
+            user_agent_rounds=user_agent_rounds,
+            user_agent_max_rounds=ua_max_rounds,
+            user_agent_done=ua_done,
         ))
 
         # Re-raise original exception so the caller (_run_single_task) can

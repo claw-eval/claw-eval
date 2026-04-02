@@ -91,8 +91,15 @@ def _grade_with_optional_params(
     grader, messages, dispatches, task,
     *, audit_data, judge, media_events, env_snapshot=None,
 ):
-    """Call grader.grade, passing optional params only when the grader accepts them."""
+    """Call grader.grade, passing optional params only when the grader accepts them.
+
+    Returns (scores, judge_calls) where judge_calls is a list of dicts
+    captured from the LLMJudge call log (empty if judge has no logging).
+    """
     from .graders.base import AbstractGrader
+
+    if hasattr(judge, "reset_call_log"):
+        judge.reset_call_log()
 
     params = inspect.signature(grader.grade).parameters
     kwargs = {"audit_data": audit_data, "judge": judge}
@@ -101,7 +108,9 @@ def _grade_with_optional_params(
     if "env_snapshot" in params and env_snapshot is not None:
         kwargs["env_snapshot"] = env_snapshot
     scores = grader.grade(messages, dispatches, task, **kwargs)
-    return scores
+
+    judge_calls = judge.get_call_log() if hasattr(judge, "get_call_log") else []
+    return scores, judge_calls
 
 
 def _make_user_agent(cfg, task):
@@ -393,7 +402,7 @@ def cmd_run(args: argparse.Namespace) -> None:
                 # Grade locally
                 start, messages, dispatches, media_events, end, audit_data = load_trace(trace_path)
                 grader = get_grader(task.task_id, tasks_dir=tasks_dir, task_dir=task_yaml.parent)
-                scores = _grade_with_optional_params(
+                scores, judge_calls = _grade_with_optional_params(
                     grader, messages, dispatches, task,
                     audit_data=audit_data, judge=judge, media_events=media_events,
                     env_snapshot=env_snapshot,
@@ -401,6 +410,23 @@ def cmd_run(args: argparse.Namespace) -> None:
                 task_score = compute_task_score(scores)
                 passed = is_pass(task_score)
                 trial_scores.append(task_score)
+                user_agent_meta = {}
+                if end and end.user_agent_rounds > 0:
+                    user_agent_meta = {
+                        "rounds_used": end.user_agent_rounds,
+                        "max_rounds": end.user_agent_max_rounds,
+                        "done_reached": end.user_agent_done,
+                    }
+                _append_grading_to_trace(
+                    trace_path,
+                    trace_id=start.trace_id,
+                    task_id=task.task_id,
+                    scores=scores,
+                    task_score=task_score,
+                    passed=passed,
+                    judge_calls=judge_calls,
+                    user_agent_meta=user_agent_meta,
+                )
                 totals = _trace_totals(end)
 
                 print(f"  completion:     {scores.completion:.2f}")
@@ -489,7 +515,7 @@ def cmd_run(args: argparse.Namespace) -> None:
             # Grade
             start, messages, dispatches, media_events, end, audit_data = load_trace(trace_path)
             grader = get_grader(task.task_id, tasks_dir=tasks_dir, task_dir=task_yaml.parent)
-            scores = _grade_with_optional_params(
+            scores, judge_calls = _grade_with_optional_params(
                 grader, messages, dispatches, task,
                 audit_data=audit_data, judge=judge, media_events=media_events,
                 env_snapshot=env_snapshot,
@@ -578,7 +604,7 @@ def cmd_run_inner(args: argparse.Namespace) -> None:
     judge = _make_judge(cfg, args)
     start, messages, dispatches, media_events, end, audit_data = load_trace(trace_path)
     grader = get_grader(task.task_id, tasks_dir=tasks_dir, task_dir=task_yaml.parent)
-    scores = _grade_with_optional_params(
+    scores, judge_calls = _grade_with_optional_params(
         grader, messages, dispatches, task,
         audit_data=audit_data, judge=judge, media_events=media_events,
     )
@@ -649,7 +675,7 @@ def cmd_grade(args: argparse.Namespace) -> None:
     tasks_dir = _resolve_tasks_dir(task_yaml)
 
     grader = get_grader(task.task_id, tasks_dir=tasks_dir, task_dir=task_yaml.parent)
-    scores = _grade_with_optional_params(
+    scores, judge_calls = _grade_with_optional_params(
         grader, messages, dispatches, task,
         audit_data=audit_data, judge=judge, media_events=media_events,
     )
@@ -678,6 +704,11 @@ def cmd_grade(args: argparse.Namespace) -> None:
     print(f"safety:         {scores.safety:.1f}")
     print(f"task_score:     {task_score:.2f}")
     print(f"passed:         {passed}")
+    if judge_calls:
+        print(f"\n--- Judge Calls ({len(judge_calls)}) ---")
+        for i, c in enumerate(judge_calls):
+            print(f"  [{i+1}] {c['method']} score={c['score']:.2f}")
+            print(f"       {c['reasoning'][:200]}")
 
 
 def _append_grading_to_trace(
@@ -687,6 +718,8 @@ def _append_grading_to_trace(
     scores,
     task_score: float,
     passed: bool,
+    judge_calls: list[dict] | None = None,
+    user_agent_meta: dict | None = None,
 ) -> None:
     """Append a grading_result event to the end of a trace JSONL file."""
     from .models.trace import GradingResult, DimensionScores
@@ -702,6 +735,8 @@ def _append_grading_to_trace(
         ),
         task_score=task_score,
         passed=passed,
+        judge_calls=judge_calls or [],
+        user_agent_meta=user_agent_meta or {},
     )
     with open(trace_path, "a") as fh:
         fh.write(event.model_dump_json() + "\n")
@@ -850,12 +885,19 @@ def _run_single_task(
 
                         start, messages, dispatches, media_events, end, audit_data = load_trace(trace_path)
                         grader = get_grader(task.task_id, tasks_dir=tasks_dir, task_dir=task_dir)
-                        scores = _grade_with_optional_params(
+                        scores, judge_calls = _grade_with_optional_params(
                             grader, messages, dispatches, task,
                             audit_data=audit_data, judge=judge, media_events=media_events,
                             env_snapshot=env_snapshot,
                         )
                         task_score = compute_task_score(scores)
+                        user_agent_meta = {}
+                        if end and end.user_agent_rounds > 0:
+                            user_agent_meta = {
+                                "rounds_used": end.user_agent_rounds,
+                                "max_rounds": end.user_agent_max_rounds,
+                                "done_reached": end.user_agent_done,
+                            }
                         _append_grading_to_trace(
                             trace_path,
                             trace_id=start.trace_id,
@@ -863,6 +905,8 @@ def _run_single_task(
                             scores=scores,
                             task_score=task_score,
                             passed=is_pass(task_score),
+                            judge_calls=judge_calls,
+                            user_agent_meta=user_agent_meta,
                         )
                         totals = _trace_totals(end)
                         result["trials"].append({
