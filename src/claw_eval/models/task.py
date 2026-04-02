@@ -60,11 +60,11 @@ class Environment(BaseModel):
     fixtures: list[str] = Field(default_factory=list)
     env_snapshot_timeout: int = 10
     # TodoWrite settings
-    enable_todo: bool = False
+    enable_todo: bool = True
     todo_nag_rounds: int = 3  # 0 = no reminder
     # Context Compact settings
-    enable_compact: bool = False
-    compact_keep_recent: int = 3          # Layer 1: keep recent N turns intact
+    enable_compact: bool = True
+    compact_keep_recent: int = 20         # Layer 1: keep recent N turns intact
     compact_min_chars: int = 500          # Layer 1: don't truncate short results
     compact_threshold_pct: float = 0.70   # Layer 2: trigger at this % of context window
     compact_keep_recent_on_summary: int = 4  # Layer 2: keep N messages after summary
