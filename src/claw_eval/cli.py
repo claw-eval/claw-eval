@@ -756,6 +756,7 @@ def _run_single_task(
     proxy: str | None = None,
     sandbox: bool = False,
     sandbox_image: str | None = None,
+    sandbox_tools: bool = False,
 ) -> dict:
     """Run a single task in a worker process. Returns a result dict."""
     # Ensure localhost bypasses proxy in worker processes.
@@ -858,6 +859,7 @@ def _run_single_task(
                             trace_path = run_task(
                                 task, provider,
                                 trace_dir=trace_dir or cfg.defaults.trace_dir,
+                                sandbox_tools=sandbox_tools,
                                 prompt_cfg=cfg.prompt,
                                 model_cfg=cfg.model,
                                 media_cfg=cfg.media,
@@ -1275,6 +1277,7 @@ def cmd_batch(args: argparse.Namespace) -> None:
                 proxy=getattr(args, "proxy", None),
                 sandbox=getattr(args, "sandbox", False),
                 sandbox_image=getattr(args, "sandbox_image", None),
+                sandbox_tools=getattr(args, "sandbox_tools", False),
             )
             pending[fut] = (td, slot)
 
@@ -1613,6 +1616,7 @@ def main(argv: list[str] | None = None) -> None:
     p_batch.add_argument("--port-base-offset", type=int, default=0, help="Base port offset to avoid conflicts when running multiple batch jobs (e.g. 400)")
     p_batch.add_argument("--sandbox", action="store_true", help="Run sandbox tools inside Docker containers")
     p_batch.add_argument("--sandbox-image", default=None, help="Override sandbox Docker image name")
+    p_batch.add_argument("--sandbox-tools", action="store_true", help="Inject sandbox tools (shell/file/browser) without Docker")
     p_batch.add_argument("--rerun-errors", default=None, metavar="TRACE_DIR",
                          help="Re-run only errored tasks from a previous batch run. "
                               "Reads batch_results.json from TRACE_DIR, re-runs errored tasks, "

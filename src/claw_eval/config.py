@@ -45,13 +45,13 @@ class ModelConfig(BaseModel):
     input_modalities: list[str] = Field(default_factory=lambda: ["text"])
     system_prompt_prefix: str | None = None
     extra_body: dict | None = None
-    context_window: int = 200_000
+    context_window: int = 262144
 
 
 class JudgeConfig(BaseModel):
     api_key: str | None = None
     base_url: str = "https://openrouter.ai/api/v1"
-    model_id: str = "google/gemini-2.5-flash"
+    model_id: str = "google/gemini-3-flash-preview"
     enabled: bool = True
 
 
