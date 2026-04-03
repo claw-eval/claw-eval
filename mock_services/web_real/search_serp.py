@@ -19,10 +19,34 @@ Output: {"status": <int>, "output": <list[dict]>}
 
 import os
 import re
+from urllib.parse import urlparse
+
 import requests
 
 SERP_API_URL = os.getenv("SERP_API_URL", "https://scraperapi.novada.com/search")
 SERP_DEV_KEY = os.getenv("SERP_DEV_KEY", "YOUR_API_KEY")
+
+
+def _uses_standard_scraperapi(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.netloc == "api.scraperapi.com" and parsed.path == "/structured/google/search"
+
+
+def _extract_organic_results(payload: object) -> list[dict]:
+    if not isinstance(payload, dict):
+        return []
+
+    organic_results = payload.get("organic_results")
+    if isinstance(organic_results, list):
+        return organic_results
+
+    data = payload.get("data")
+    if isinstance(data, dict):
+        nested_results = data.get("organic_results")
+        if isinstance(nested_results, list):
+            return nested_results
+
+    return []
 
 
 def _detect_language(query: str) -> tuple[str, str]:
@@ -56,7 +80,6 @@ def search_serp(
     params = {
         "engine": "google",
         "api_key": SERP_DEV_KEY,
-        "q": query,
         "num": str(min(max(num, 1), 10)),
         "hl": hl,
         "gl": gl,
@@ -64,6 +87,7 @@ def search_serp(
         "fetch_mode": "static",
         "no_cache": "true",
     }
+    params["query" if _uses_standard_scraperapi(SERP_API_URL) else "q"] = query
     try:
         resp = requests.get(SERP_API_URL, params=params, timeout=timeout)
         if raw_save_path and resp.status_code == 200:
@@ -72,16 +96,16 @@ def search_serp(
                 f.write(resp.text)
         if resp.status_code != 200:
             return {"status": resp.status_code, "output": []}
-        data = resp.json().get("data", {})
+        organic_results = _extract_organic_results(resp.json())
         results = [
             {
                 "title": item.get("title", ""),
-                "link": item.get("url", ""),
-                "snippet": item.get("description", ""),
+                "link": item.get("url") or item.get("link", ""),
+                "snippet": item.get("description") or item.get("snippet", ""),
                 "date": item.get("date", ""),
                 "query": query,
             }
-            for item in data.get("organic_results", [])
+            for item in organic_results
         ]
         return {"status": resp.status_code, "output": results}
     except Exception as e:
