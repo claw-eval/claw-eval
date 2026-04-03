@@ -49,6 +49,9 @@ We recommend using [uv](https://docs.astral.sh/uv/) for fast, reliable dependenc
 pip install uv
 uv venv --python 3.11
 source .venv/bin/activate
+git clone https://github.com/claw-eval/claw-eval.git
+cd claw-eval/
+uv pip install -r requirements.txt
 ```
 
 Prepare your keys and set up the environments with one command:
