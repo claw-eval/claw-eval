@@ -31,7 +31,8 @@ Scoring:
 (accept variations like "330m", "330 metres", etc.).
 - Score 0.5 if the agent correctly identifies the Eiffel Tower but states the wrong height or omits it.
 - Score 0.0 if the building is wrong, or the building is missing, \
-or the agent only answers the height correctly but identifies the wrong building."""
+or the agent only answers the height correctly but identifies the wrong building.
+NOTE: Ignore whether any actions were taken. Judge the answer text only."""
 
     VISUAL_RUBRIC = """\
 Evaluate this extracted video frame:
@@ -73,7 +74,7 @@ Scoring:
             )
             text_score = result.score if result else 0.0
 
-        # --- Image part (0.6): file exists (0.1) + visual judge (0.5) ---
+        # --- Image part (0.8): file exists (0.1) + visual judge (0.7) ---
         image_score = 0.0
         file_exists = self.check_file_exists(env_snapshot, self.OUTPUT_FILE)
         if file_exists:
@@ -93,9 +94,9 @@ Scoring:
                     context="Extracted frame from the video, should show the Eiffel Tower.",
                 )
                 visual_score = result.score if result else 0.0
-                image_score += 0.5 * visual_score
+                image_score += 0.7 * visual_score
 
-        scores.completion = round(0.4 * text_score + image_score, 2)
+        scores.completion = round(0.2 * text_score + image_score, 2)
         scores.robustness = self.compute_robustness(dispatches)
         scores.efficiency_turns = len(
             [m for m in messages if m.message.role == "assistant"]

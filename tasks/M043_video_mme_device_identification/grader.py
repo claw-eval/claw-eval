@@ -29,7 +29,8 @@ Ground-Truth Answer: Quest 3 (a mixed reality headset made by Meta).
 Scoring:
 - Score 1.0 if the agent correctly identifies the device as "Quest 3" \
 (accept variations like "Meta Quest 3", "Quest3", etc.).
-- Score 0.0 if the answer is wrong or missing."""
+- Score 0.0 if the answer is wrong or missing.
+NOTE: Ignore whether any actions were taken. Judge the answer text only."""
 
     VISUAL_RUBRIC = """\
 Evaluate this extracted video frame:

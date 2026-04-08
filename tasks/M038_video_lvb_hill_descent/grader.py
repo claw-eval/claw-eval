@@ -40,17 +40,17 @@ If no valid interval can be parsed, return 0.0."""
 Evaluate this cropped video frame:
 
 The frame should show a woman descending from a rocky hill with tall rocks. \
-At this point in the video (around 3:34–3:40) the woman is wearing a headband \
-and has a dark blue jacket hanging on her black backpack. She should be the \
-main subject, clearly visible and centered in the crop.
+The woman wears a red top and a headband, and has a dark blue jacket hanging \
+on her black backpack. She should be the main subject, clearly visible and \
+centered in the crop.
 
 Scoring:
-- Score 1.0 if the woman is clearly visible and centered, and she has a dark blue \
-jacket on her black backpack consistent with the descent scene.
-- Score 0.5 if the woman is visible but the crop is not well-centered on her, or the \
-jacket/backpack detail is unclear.
-- Score 0.0 if the woman is not visible, the frame is from the wrong scene, or the \
-file is empty/corrupt."""
+- Score 1.0 if the woman is clearly visible and centered, wearing a red top, \
+and the dark blue jacket on her black backpack is consistent with the descent scene.
+- Score 0.5 if the woman is visible but either the crop is not well-centered on her, \
+or the red top / jacket+backpack detail is unclear.
+- Score 0.0 if the woman is not visible, the red top is absent, the frame is from \
+the wrong scene, or the file is empty/corrupt."""
 
     def grade(
         self,

@@ -17,10 +17,18 @@ GROUND_TRUTH: list[tuple[str, str]] = [
     ("垃圾袋", "49.9"),
     ("麻辣牛肉", "79.8"),
     ("鱿鱼", "79.9"),
-    ("眼肉牛排", "238.6"),
-    ("薄切西冷", "243"),
+    ("眼肉牛排", "238.66"),
+    ("薄切西冷", "243.09"),
     ("大蒜", "19.9"),
     ("玉米", "59.9"),
+    ("番茄", "39.9"),
+    ("鸡蛋", "56.8"),
+    ("生菜", "15.9"),
+    ("甜杆西兰花", "19.9"),
+    ("辣椒", "15.9"),
+    ("西兰花", "17.9"),
+    ("鳕鱼片", "115.9"),
+    ("脱骨鸭掌", "69.9")
 ]
 
 TOTAL = len(GROUND_TRUTH)
@@ -43,8 +51,9 @@ Important:
 - An item is correct only when name and price are both right.
 - Minor name variations are acceptable if clearly referring to the same item \
 (e.g. "薄切西冷牛排" for "薄切西冷").
-- Prices must be numerically correct (e.g. "243" and "243.0" are equivalent, but "243" ≠ "243.6").
-- Do NOT give partial credit for an item where only the name or only the price is correct."""
+- Prices must be numerically correct (e.g. "243" and "243.0" are equivalent, but "243" ≠ "243.09").
+- Do NOT give partial credit for an item where only the name or only the price is correct.
+NOTE: Ignore whether any actions were taken. Judge the answer text only."""
 
 
 class WildShopping004Grader(AbstractGrader, MultimodalGraderMixin):

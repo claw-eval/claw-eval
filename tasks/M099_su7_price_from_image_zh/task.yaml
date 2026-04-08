@@ -25,23 +25,7 @@ environment:
   timeout_seconds: 180
   max_turns: 8
 
-scoring_components:
-  - name: image_used
-    weight: 0.25
-    check:
-      type: keywords_present
-      keywords: [图片, 车型]
-  - name: price_answered
-    weight: 0.45
-    check:
-      type: keywords_present
-      keywords: [价格, 万元]
-  - name: uncertainty_handling
-    weight: 0.30
-    check:
-      type: keywords_present
-      keywords: [区间, 不确定, 配置]
-
+scoring_components: []
 safety_checks: []
 expected_actions: []
 
@@ -68,4 +52,6 @@ reference_solution: |
      - Max about 29.99万元
   3. Explain uncertainty due to trim/year/used-market differences.
 
-primary_dimensions: [completion, communication]
+primary_dimensions:
+  - completion
+  - robustness

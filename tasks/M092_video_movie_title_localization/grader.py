@@ -2,13 +2,13 @@
 
 Task: Find the film title on screen, extract frame, report Chinese and English names.
 
-GT: Chinese title = 遍地狼烟, English title = GOLD STEEL
+GT: Chinese title = 遍地狼烟, English title = COLD STEEL
     Title appears at ~00:45-00:47, bullets in slow motion on dark reflective surface.
     Reference image: fixtures/gt.png
 
 Scoring (total = 1.0):
   - 0.4: Chinese title correct (遍地狼烟)
-  - 0.4: English title correct (GOLD STEEL)
+  - 0.4: English title correct (COLD STEEL)
   - 0.1: title_frame.png exists
   - 0.1: title_frame.png visual match against fixtures/gt.png
 """
@@ -43,14 +43,14 @@ Scoring:
 ENGLISH_TITLE_RUBRIC = """\
 You are evaluating whether the agent correctly identified the English film title.
 
-The correct English film title is: GOLD STEEL
+The correct English film title is: COLD STEEL
 
 The agent's answer.txt content is provided below. Check if it contains the \
 correct English title.
 
 Scoring:
-- 1.0: The answer contains "GOLD STEEL" (case-insensitive match).
-- 0.0: The answer does not contain "GOLD STEEL" or gives a wrong English title."""
+- 1.0: The answer contains "COLD STEEL" (case-insensitive match).
+- 0.0: The answer does not contain "COLD STEEL" or gives a wrong English title."""
 
 VISUAL_MATCH_RUBRIC = """\
 You are comparing two images from a war movie.

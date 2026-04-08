@@ -27,7 +27,7 @@ class SU7PriceFromImageGrader(AbstractGrader):
 
         image_loaded = 0.0
         if media_events:
-            image_loaded = 1.0 if any(e.modality == "image" and e.status == "loaded" for e in media_events) else 0.0
+            image_loaded = 1.0 if any(e.modality == "image" for e in media_events) else 0.0
 
         judged = judge.evaluate(
             task.prompt.text,

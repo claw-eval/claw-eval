@@ -95,7 +95,8 @@ Important:
 (e.g. "90W快充" vs "支持90W（有线）快充").
 - Numeric values must be correct (prices, screen sizes, battery capacity, megapixels).
 - A phone is only correct when the model name and ALL dimensions are right; \
-no partial credit per phone."""
+no partial credit per phone.
+NOTE: Ignore whether any actions were taken. Judge the answer text only."""
 
 
 class WildPhoneCompare005Grader(AbstractGrader, MultimodalGraderMixin):

@@ -27,9 +27,10 @@ Question: Which Bugatti model was historically the first to feature a closed aut
 Ground-Truth Answer: Bugatti Type 44.
 
 Scoring:
-- Score 1.0 if the agent correctly identifies the model as "Type 44" \
+- Score 1.0 if the answer correctly identifies the model as "Type 44" \
 (accept variations like "Bugatti Type 44", "Type-44", etc.).
-- Score 0.0 if the answer is wrong or missing."""
+- Score 0.0 if the answer is wrong or missing.
+- NOTE: Ignore whether any actions were taken. Judge the answer text only."""
 
     VISUAL_RUBRIC = """\
 Evaluate this extracted video frame:
@@ -37,9 +38,13 @@ Evaluate this extracted video frame:
 The frame should clearly show the Bugatti Type 44, which features a closed automobile roof.
 
 Scoring:
-- Score 1.0 if the Bugatti Type 44 is clearly identifiable in the frame \
-(e.g., visible label, text, or unmistakable visual features of the car).
-- Score 0.0 if the Type 44 is not clearly identifiable, or the frame is unrelated."""
+- Score 1.0 if the text "Type 44" (or "Type44") is visibly present in the frame \
+(e.g., as a label, caption, or on-screen text), OR if the Bugatti Type 44 is \
+unmistakably identifiable by its visual features.
+- Score 0.0 if the text "Type 44" is not visible AND the car is not clearly identifiable, \
+or the frame is unrelated.
+
+IMPORTANT: First check explicitly whether the text "Type 44" appears anywhere in the frame."""
 
     def grade(
         self,

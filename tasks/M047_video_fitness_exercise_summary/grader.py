@@ -58,7 +58,8 @@ Important:
 - An exercise is correct only when name and muscles are both right.
 - Minor formatting differences are acceptable (e.g. "/" vs "、" as separator), \
 but the muscle group names must be substantively correct.
-- Do NOT give partial credit for an exercise where only the name or only the muscles are correct."""
+- Do NOT give partial credit for an exercise where only the name or only the muscles are correct.
+NOTE: Ignore whether any actions were taken. Judge the answer text only."""
 
 
 class WildFitness002Grader(AbstractGrader, MultimodalGraderMixin):

@@ -11,8 +11,8 @@ prompt:
 
     Watch the video carefully and complete the following task:
 
-    1. Identify the specific Bugatti model that was historically the first to feature a closed automobile roof. Save your answer as a single line to /workspace/answer.txt.
-    2. From the video, locate and extract one frame in which this Bugatti model appears, and save it as /workspace/bugatti_frame.png.
+    1. Identify the specific Bugatti model that was historically the first to feature a closed automobile roof. Save your answer (the model name/number only) as a single line to /workspace/answer.txt.
+    2. From the video, find a frame that clearly shows the on-screen text label of the Bugatti model you identified in step 1. The model name/number must be visibly readable as text in the frame. Save that frame as /workspace/bugatti_frame.png.
 
     Make sure both output files are saved to their specified paths.
   language: en

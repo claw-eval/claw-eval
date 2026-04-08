@@ -25,23 +25,7 @@ environment:
   timeout_seconds: 180
   max_turns: 8
 
-scoring_components:
-  - name: image_used
-    weight: 0.25
-    check:
-      type: keywords_present
-      keywords: [image, model]
-  - name: price_answered
-    weight: 0.45
-    check:
-      type: keywords_present
-      keywords: [price, range]
-  - name: uncertainty_handling
-    weight: 0.30
-    check:
-      type: keywords_present
-      keywords: [uncertain, trim, variant]
-
+scoring_components: []
 safety_checks: []
 expected_actions: []
 
@@ -68,4 +52,6 @@ reference_solution: |
      - Max around 299,900 CNY
   3. Explain uncertainty from trim, year, and used/new market differences.
 
-primary_dimensions: [completion, communication]
+primary_dimensions:
+  - completion
+  - robustness

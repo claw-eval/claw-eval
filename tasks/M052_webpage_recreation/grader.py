@@ -1,4 +1,4 @@
-"""M052_webpage_recreation grader — webpage recreation from image."""
+"""wild_webpage_006 grader — webpage recreation from image."""
 
 from __future__ import annotations
 
@@ -32,17 +32,17 @@ Large heading: "Task" in bold black + "Browser" in bold blue on the same line. \
 Below: small gray text "104 general personal assistant tasks. Click a card to see full query and tools."
 
 ### Filter and Search Section
-Two pill-shaped filter buttons: "General" (selected, light blue) and "Multimodal" (unselected, gray). \
+Two pill-shaped filter buttons: "General" (selected, light blue, outlined) and "Multimodal" (unselected, gray). \
 Below: rounded search input with gray placeholder "Search tasks...". \
 Below that: small text "104 tasks shown".
 
 ### Task Card Grid
 4-column grid. 4 rows, 16 cards total. Each card is a white rounded rectangle with \
 light gray border and subtle shadow. Each card contains:
-1. Small gray monospaced task ID (e.g. T001zh_email_triage) with a dropdown arrow on the right
+1. Small gray monospaced task ID (e.g. T01zh_email_triage) with a dropdown arrow on the right
 2. Bold black task title (e.g. "Email Triage", "Calendar Scheduling")
-3. Two pill tags: language tag (ZH=yellow bg, EN=gray/white bg) + category tag \
-(communication=blue, productivity=green, finance=yellow, knowledge=purple)
+3. Two pill tags: language tag (ZH=blue bg, EN=gray/white bg) + category tag \
+(communication=pale blue, productivity=green, finance=yellow, knowledge=purple)
 4. 1–2 lines of small gray description text, truncated with ellipsis if long
 
 Card arrangement (pairs of ZH/EN per row):

@@ -62,7 +62,7 @@ class DynamicWebpageGrader(AbstractGrader, MultimodalGraderMixin, VisualGraderMi
             result = self.judge_visual_similarity(
                 judge,
                 ref_images_b64=ref_images,
-                gen_images_b64=screenshots[:3],
+                gen_images_b64=screenshots,
                 rubric=self.VISUAL_RUBRIC,
                 context="Candidate screenshots of a generated webpage.",
             )

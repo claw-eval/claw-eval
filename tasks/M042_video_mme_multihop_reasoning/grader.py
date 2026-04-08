@@ -21,7 +21,8 @@ Ground-Truth Answer: June 9, 2021
 Scoring:
 - Score 1.0 if the agent's answer matches "June 9, 2021" exactly or in an equivalent format \
 (e.g., "2021-06-09", "9 June 2021", "June 9th, 2021").
-- Score 0.0 if the answer is wrong, incomplete, missing, or the agent fails to answer the question."""
+- Score 0.0 if the answer is wrong, incomplete, missing, or the agent fails to answer the question.
+NOTE: Ignore whether any actions were taken. Judge the answer text only."""
 
     ANSWER_FILE = "/workspace/answer.txt"
 

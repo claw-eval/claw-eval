@@ -11,7 +11,7 @@ from claw_eval.models.trace import DimensionScores, MediaLoad, ToolDispatch, Tra
 
 
 class VideoTennisShotlogQAGrader(AbstractGrader, MultimodalGraderMixin):
-    """Grade tennis shot log QA: server(0.1) + shot log(0.5) + count(0.2) + winner(0.2)."""
+    """Grade tennis shot log QA: server(0.1) + shot log(0.5) + count(0.3) + winner(0.1)."""
 
     RUBRIC = """\
 Ground Truth (point at Set 0:1, Game 4:5, Point 0:15):
@@ -34,11 +34,11 @@ If the player sequence is wrong, the entire shot log scores 0.
 score 0.05 if the stroke type (forehand/backhand) is correct. \
 Only scored if the player sequence is correct.
 
-3. Total shot count (0.2): 6 shots (including the serve). \
-Score 0.2 if exactly correct, 0 otherwise.
+3. Total shot count (0.3): 6 shots (including the serve). \
+Score 0.3 if exactly correct, 0 otherwise.
 
-4. Point winner (0.2): Roger Federer wins the point. \
-Score 0.2 if correct, 0 otherwise.
+4. Point winner (0.1): Roger Federer wins the point. \
+Score 0.1 if correct, 0 otherwise.
 
 Final score = sum of all items (0.0-1.0)."""
 

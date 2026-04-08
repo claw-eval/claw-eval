@@ -75,7 +75,7 @@ def _compute_iou(start1: float, end1: float, start2: float, end2: float) -> floa
 def _get_duration_from_ffprobe(env_snapshot: dict | None) -> float | None:
     """Extract duration from ffprobe JSON output in env_snapshot."""
     cmd_key = "cmd:ffprobe -v quiet -print_format json -show_format -show_streams /workspace/chase_2x.mp4"
-    raw = (env_snapshot or {}).get(cmd_key, {}).get("content", "")
+    raw = (env_snapshot or {}).get(cmd_key, {}).get("stdout", "")
     if not raw:
         return None
 

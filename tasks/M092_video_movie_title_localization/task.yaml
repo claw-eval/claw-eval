@@ -41,7 +41,7 @@ judge_rubric: ""
 reference_solution: |
   观看视频到约 00:45-00:47 处，会出现片名画面：子弹慢动作落在黑色反光面上，片名文字显示。
   中文片名：遍地狼烟
-  英文片名：GOLD STEEL
+  英文片名：COLD STEEL
   截取该帧保存为 title_frame.png，将中英文片名写入 answer.txt。
   评分：0.4 中文片名 + 0.4 英文片名 + 0.1 截图存在 + 0.1 截图内容匹配 GT。
 

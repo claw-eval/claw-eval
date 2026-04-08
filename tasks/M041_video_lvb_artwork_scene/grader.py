@@ -22,17 +22,18 @@ class Lvb004Grader(AbstractGrader, MultimodalGraderMixin, VisualGraderMixin):
     VISUAL_RUBRIC = """\
 Evaluate this extracted video frame:
 
-The frame should show another scene where the artwork of "a person resting their hand on their forehead \
-on yellowish paper" appeared. According to the ground truth, this scene shows two drawings side by side: \
-the "person resting their hand on their forehead" drawing on the right, another drawing on the left, \
-and a bookshelf visible in the background.
+The target scene shows EXACTLY two drawings side by side: the drawing of \
+"a person resting their hand on their forehead on yellowish paper" on the right, \
+and one other drawing on the left. A bookshelf is visible in the background. \
+There must be exactly two drawings — no more, no less.
 
 Scoring:
-- Score 1.0 if the frame clearly shows the described artwork (person resting hand on forehead on yellowish paper) \
-alongside another drawing, with a bookshelf in the background.
-- Score 0.5 if the frame shows the described artwork in a different context (not the solo center-screen shot), \
-but does not clearly show both drawings and the bookshelf.
-- Score 0.0 if the artwork is not visible, or the frame is from the original center-screen close-up shot only."""
+- Score 1.0 if ALL of the following are true:
+  (a) The drawing of "a person resting their hand on their forehead on yellowish paper" \
+is clearly visible in the frame.
+  (b) There are exactly TWO drawings total in the frame — not one, not three or more.
+  (c) A bookshelf is visible in the background.
+- Score 0.0 if any of the above conditions is not met."""
 
     def grade(
         self,
