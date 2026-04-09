@@ -4,13 +4,15 @@
 
 # Claw-Eval
 
-[![Tasks](https://img.shields.io/badge/tasks-139-blue)](#tasks)
-[![Models](https://img.shields.io/badge/models-23-green)](#leaderboard)
+[![Tasks](https://img.shields.io/badge/tasks-300-blue)](#tasks)
+[![Models](https://img.shields.io/badge/models-14-green)](#leaderboard)
+[![Paper](https://img.shields.io/badge/paper-arXiv-red)](https://arxiv.org/abs/2604.06132v1)
 [![Leaderboard](https://img.shields.io/badge/leaderboard-live-purple)](https://claw-eval.github.io)
+[![Dataset](https://img.shields.io/badge/🤗-Dataset-yellow)](https://huggingface.co/datasets/claw-eval/Claw-Eval)
 [![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 
-> End-to-end transparent benchmark for AI agents acts in the real world. <br>
-> 139 tasks, 15 services, Docker sandboxes, and robust grading.
+> End-to-end transparent benchmark for AI agents acting in the real world. <br>
+> 300 human-verified tasks | 2,159 rubrics | 9 categories | Completion · Safety · Robustness.
 
 </div>
 
@@ -30,16 +32,43 @@ Browse the full leaderboard and individual task cases at **[claw-eval.github.io]
 
 
 ## 📢 Updates
-* **v1.1.0 is now live! 35 more challenging multimodal agentic tasks — agents perceive, reason, create, and deliver.**
+* **v1.1.0** — 35 multimodal agentic tasks + 38 multi-turn dialogue tasks. Agents perceive, reason, create, and deliver.
 
-<img src="claweval_multimodal.png" width="1080" alt="Claw-Eval Logo">
+<img src="claweval_multimodal.png" width="1080" alt="Claw-Eval Multimodal">
 
-* v1.0.0 is now live!
-Built on reproducible real-world complexity.
-
-* v0.0.0 released: from chatbot to real world. (2026.3)
+* **v1.0.0** — Built on reproducible real-world complexity.
+* **v0.0.0** — From chatbot to real world. (2026.3)
 
 
+
+## Tasks
+
+300 tasks across 3 splits and 9 categories, each task with human-verified rubrics.
+
+| Split | Count | Description |
+|-------|-------|-------------|
+| `general` | 161 | Core agent tasks across communication, finance, ops, productivity, etc. |
+| `multimodal` | 101 | Perception and creation — webpage generation, video QA, document extraction, etc. |
+| `multi_turn` | 38 | Conversational tasks with simulated user personas for clarification and advice |
+
+Agents are graded on three dimensions through full-trajectory auditing:
+- **Completion** — did the agent finish the task?
+- **Safety** — did it avoid harmful or unauthorized actions?
+- **Robustness** — does it pass consistently across multiple trials?
+
+### Dataset
+
+Available on Hugging Face: [claw-eval/Claw-Eval](https://huggingface.co/datasets/claw-eval/Claw-Eval)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `task_id` | string | Unique task identifier |
+| `query` | string | Task instruction / description |
+| `fixture` | list[string] | Fixture files required (available in `data/fixtures.tar.gz`) |
+| `language` | string | `en` or `zh` |
+| `category` | string | Task domain |
+
+---
 
 ## Quick Start
 
@@ -86,6 +115,23 @@ Our test cases are built on the work of the community. We draw from and adapt ta
 [Bowen Ye](https://github.com/pkuYmiracle)(PKU), [Rang Li](https://github.com/lirang04) (PKU), [Qibin Yang](https://github.com/yangqibin-caibi) (PKU), [Zhihui Xie](https://zhxie.site/)(HKU), [Yuanxin Liu](https://llyx97.github.io/)(PKU), [Linli Yao](https://yaolinli.github.io/)(PKU), [Hanglong Lyu](https://github.com/Albus2002)(PKU), [Lei Li](lilei-nlp.github.io)(HKU, project lead)
 
 
-## Advisors:
+## Advisors
 [Tong Yang](https://yangtonghome.github.io/) (PKU), [Zhifang Sui](https://cs.pku.edu.cn/info/1226/2014.htm) (PKU), [Lingpeng Kong](https://ikekonglp.github.io/) (HKU), [Qi Liu](https://leuchine.github.io/) (HKU)
+
+## Citation
+
+If you use Claw-Eval in your research, please cite:
+
+```bibtex
+@misc{claw-eval2026,
+  title={Claw-Eval: End-to-End Transparent Benchmark for AI Agents in the Real World},
+  author={Ye, Bowen and Li, Rang and Yang, Qibin and Xie, Zhihui and Liu, Yuanxin and Yao, Linli and Lyu, Hanglong and Li, Lei},
+  year={2026},
+  url={https://github.com/claw-eval/claw-eval}
+}
+```
+
+## License
+
+This project is released under the [MIT License](LICENSE).
 
