@@ -11,7 +11,7 @@
 [![Dataset](https://img.shields.io/badge/🤗-Dataset-yellow)](https://huggingface.co/datasets/claw-eval/Claw-Eval)
 [![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 
-> End-to-end transparent benchmark for AI agents acting in the real world. <br>
+> Claw-Eval: Toward Trustworthy Evaluation of Autonomous Agents. <br>
 > 300 human-verified tasks | 2,159 rubrics | 9 categories | Completion · Safety · Robustness.
 
 </div>
@@ -32,9 +32,7 @@ Browse the full leaderboard and individual task cases at **[claw-eval.github.io]
 
 
 ## 📢 Updates
-* **v1.1.0** — 35 multimodal agentic tasks + 38 multi-turn dialogue tasks. Agents perceive, reason, create, and deliver.
-
-<img src="claweval_multimodal.png" width="1080" alt="Claw-Eval Multimodal">
+* **v1.1.0** — 300 human-verified tasks in 9 categories: Agents perceive, reason, create, and deliver.
 
 * **v1.0.0** — Built on reproducible real-world complexity.
 * **v0.0.0** — From chatbot to real world. (2026.3)
