@@ -92,6 +92,7 @@ Go rock 🚀
 
 ```bash
 claw-eval batch --config model_configs/claude_opus_46.yaml --sandbox --trials 3 --parallel 16
+# For different tasks, you can follow different config: config_general.yaml/config_multimodal.yaml/config_user_agent.yaml.
 ```
 
 ---
