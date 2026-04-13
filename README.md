@@ -124,11 +124,11 @@ Our test cases are built on the work of the community. We draw from and adapt ta
 If you use Claw-Eval in your research, please cite:
 
 ```bibtex
-@misc{claw-eval2026,
-  title={Claw-Eval: End-to-End Transparent Benchmark for AI Agents in the Real World},
-  author={Ye, Bowen and Li, Rang and Yang, Qibin and Xie, Zhihui and Liu, Yuanxin and Yao, Linli and Lyu, Hanglong and Li, Lei},
-  year={2026},
-  url={https://github.com/claw-eval/claw-eval}
+@article{ye2026claw,
+  title={Claw-Eval: Toward Trustworthy Evaluation of Autonomous Agents},
+  author={Ye, Bowen and Li, Rang and Yang, Qibin and Liu, Yuanxin and Yao, Linli and Lv, Hanglong and Xie, Zhihui and An, Chenxin and Li, Lei and Kong, Lingpeng and others},
+  journal={arXiv preprint arXiv:2604.06132},
+  year={2026}
 }
 ```
 
