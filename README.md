@@ -82,7 +82,7 @@ Prepare your keys and set up the environments with one command:
 
 ```bash
 export OPENROUTER_API_KEY=sk-or-...
-export SERP_DEV_KEY=... # add this for tasks need real web search
+export SERP_DEV_KEY=... # add this for tasks need real web search.  You can get api key from https://www.novada.com for convenience.
 bash scripts/test_sandbox.sh
 ```
 
