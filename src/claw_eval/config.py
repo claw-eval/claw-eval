@@ -48,6 +48,10 @@ class ModelConfig(BaseModel):
     reasoning_effort: str | None = None
     context_window: int = 262144
     temperature: float | None = 0.0  # None = don't send temperature param
+    # "openai_compat" (default, uses openai SDK against any OpenAI-compatible
+    # base_url) or "litellm" (embedded LiteLLM SDK; no proxy server).
+    provider: str = "openai_compat"
+    litellm_kwargs: dict | None = None
 
 
 class JudgeConfig(BaseModel):
@@ -55,6 +59,9 @@ class JudgeConfig(BaseModel):
     base_url: str = "https://openrouter.ai/api/v1"
     model_id: str = "google/gemini-3-flash-preview"
     enabled: bool = True
+    # Same provider switch as ModelConfig; defaults to OpenRouter via openai_compat.
+    provider: str = "openai_compat"
+    litellm_kwargs: dict | None = None
 
 
 class DefaultsConfig(BaseModel):

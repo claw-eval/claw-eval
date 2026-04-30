@@ -52,6 +52,25 @@ def _make_trace_dir(base_dir: str | Path, model_id: str) -> Path:
     return trace_dir
 
 
+def _make_model_provider(cfg, model_id, api_key=None, base_url=None):
+    """Build a provider for the run, honoring CLI / programmatic overrides.
+
+    Dispatches on ``cfg.model.provider`` ("openai_compat" default, "litellm"
+    optional). Returns an OpenAICompatProvider or LiteLLMProvider; both expose
+    the same chat() interface so the rest of the runner is provider-agnostic.
+    """
+    from .runner.providers import make_provider
+
+    overridden = cfg.model.model_copy(
+        update={
+            "model_id": model_id,
+            "api_key": api_key or cfg.model.api_key,
+            "base_url": base_url or cfg.model.base_url,
+        }
+    )
+    return make_provider(overridden)
+
+
 def _make_judge(cfg, args):
     """Create an LLMJudge instance if enabled, or None."""
     if getattr(args, "no_judge", False):
@@ -324,7 +343,6 @@ def cmd_run(args: argparse.Namespace) -> None:
     from .models.scoring import compute_pass_at_k, compute_pass_hat_k, compute_task_score, is_pass
     from .models.task import TaskDefinition
     from .runner.loop import run_task
-    from .runner.providers.openai_compat import OpenAICompatProvider
     from .trace.reader import load_trace
 
     cfg = load_config(args.config)
@@ -351,14 +369,7 @@ def cmd_run(args: argparse.Namespace) -> None:
 
         sandbox_image = getattr(args, "sandbox_image", None) or cfg.sandbox.image
         runner = SandboxRunner(cfg.sandbox, image=sandbox_image)
-        provider = OpenAICompatProvider(
-            model_id=model_id,
-            api_key=args.api_key or cfg.model.api_key,
-            base_url=args.base_url or cfg.model.base_url,
-            extra_body=cfg.model.extra_body,
-            temperature=cfg.model.temperature,
-            reasoning_effort=cfg.model.reasoning_effort,
-        )
+        provider = _make_model_provider(cfg, model_id, args.api_key, args.base_url)
         judge = _make_judge(cfg, args)
         trials = args.trials or 1
         trial_scores: list[float] = []
@@ -476,14 +487,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         return
 
     # ---- Normal (local) mode ----
-    provider = OpenAICompatProvider(
-        model_id=model_id,
-        api_key=args.api_key or cfg.model.api_key,
-        base_url=args.base_url or cfg.model.base_url,
-        extra_body=cfg.model.extra_body,
-        temperature=cfg.model.temperature,
-        reasoning_effort=cfg.model.reasoning_effort,
-    )
+    provider = _make_model_provider(cfg, model_id, args.api_key, args.base_url)
 
     judge = _make_judge(cfg, args)
     sandbox_tools = getattr(args, "sandbox_tools", False)
@@ -582,7 +586,6 @@ def cmd_run_inner(args: argparse.Namespace) -> None:
     from .models.scoring import compute_task_score, is_pass
     from .models.task import TaskDefinition
     from .runner.loop import run_task
-    from .runner.providers.openai_compat import OpenAICompatProvider
     from .runner.services import ServiceManager
     from .trace.reader import load_trace
 
@@ -593,14 +596,18 @@ def cmd_run_inner(args: argparse.Namespace) -> None:
     tasks_dir = _resolve_tasks_dir(task_yaml)
 
     model_id = args.model or cfg.model.model_id
-    provider = OpenAICompatProvider(
-        model_id=model_id,
-        api_key=args.api_key or cfg.model.api_key or os.environ.get("OPENAI_API_KEY"),
-        base_url=args.base_url or cfg.model.base_url,
-        extra_body=cfg.model.extra_body,
-        temperature=cfg.model.temperature,
-        reasoning_effort=cfg.model.reasoning_effort,
-    )
+    # Last-resort fallback to OPENAI_API_KEY when api_key is unset on the
+    # openai_compat path; LiteLLM resolves provider keys per-call so this
+    # only matters for the OpenAI-compatible path.
+    if (
+        cfg.model.provider == "openai_compat"
+        and not (args.api_key or cfg.model.api_key)
+        and os.environ.get("OPENAI_API_KEY")
+    ):
+        cfg = cfg.model_copy(
+            update={"model": cfg.model.model_copy(update={"api_key": os.environ["OPENAI_API_KEY"]})}
+        )
+    provider = _make_model_provider(cfg, model_id, args.api_key, args.base_url)
 
     sandbox_tools = getattr(args, "sandbox_tools", False)
     # _run-inner receives the final trace dir from the caller (e.g. submit script).
@@ -795,7 +802,6 @@ def _run_single_task(
     from .models.scoring import compute_pass_at_k, compute_pass_hat_k, compute_task_score, is_pass
     from .models.task import TaskDefinition
     from .runner.loop import run_task
-    from .runner.providers.openai_compat import OpenAICompatProvider
     from .runner.services import ServiceManager
     from .trace.reader import load_trace
 
@@ -807,13 +813,11 @@ def _run_single_task(
         task.apply_port_offset(port_offset)
 
     cfg = load_config(config_path)
-    provider = OpenAICompatProvider(
-        model_id=model or cfg.model.model_id,
-        api_key=api_key or cfg.model.api_key,
-        base_url=base_url or cfg.model.base_url,
-        extra_body=cfg.model.extra_body,
-        temperature=cfg.model.temperature,
-        reasoning_effort=cfg.model.reasoning_effort,
+    provider = _make_model_provider(
+        cfg,
+        model or cfg.model.model_id,
+        api_key=api_key,
+        base_url=base_url,
     )
 
     # Build judge if needed
