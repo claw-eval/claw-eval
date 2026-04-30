@@ -11,12 +11,11 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from claw_eval.config import ModelConfig
-from claw_eval.models.content import TextBlock, ToolUseBlock
+from claw_eval.models.content import TextBlock
 from claw_eval.models.message import Message
 from claw_eval.models.tool import ToolSpec
 from claw_eval.runner.providers import OpenAICompatProvider, make_provider
 from claw_eval.runner.providers.litellm import LiteLLMProvider
-
 
 # ---------------------------------------------------------------------------
 # Mocked litellm.completion responses (OpenAI shape)
@@ -107,8 +106,8 @@ class TestLiteLLMProviderInit(unittest.TestCase):
         self.assertEqual(p.litellm_kwargs.get("timeout"), 120)
         self.assertIs(p.litellm_kwargs.get("drop_params"), True)
 
-    def test_skips_openai_client_setup(self):
-        # Parent OpenAICompatProvider sets self.client; we deliberately don't.
+    def test_no_client_attribute(self):
+        # Standalone provider, no openai.OpenAI client to construct.
         p = LiteLLMProvider(model_id="openai/gpt-4o")
         self.assertFalse(hasattr(p, "client"))
 
@@ -197,9 +196,7 @@ class TestChatRouting(unittest.TestCase):
         p = LiteLLMProvider(model_id="anthropic/claude-3-5-sonnet-20241022")
         tool_call = SimpleNamespace(
             id="call_123",
-            function=SimpleNamespace(
-                name="get_weather", arguments='{"city":"Tokyo"}'
-            ),
+            function=SimpleNamespace(name="get_weather", arguments='{"city":"Tokyo"}'),
         )
 
         with patch(

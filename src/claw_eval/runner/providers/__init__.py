@@ -29,6 +29,4 @@ def make_provider(model_cfg):
         return LiteLLMProvider(**common, litellm_kwargs=model_cfg.litellm_kwargs)
     if model_cfg.provider == "openai_compat":
         return OpenAICompatProvider(**common)
-    raise ValueError(
-        f"Unknown provider {model_cfg.provider!r} (expected 'openai_compat' or 'litellm')."
-    )
+    raise ValueError(f"Unknown provider {model_cfg.provider!r} (expected 'openai_compat' or 'litellm').")
