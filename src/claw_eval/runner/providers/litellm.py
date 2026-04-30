@@ -15,16 +15,19 @@ environment variables (``ANTHROPIC_API_KEY``, ``OPENAI_API_KEY``,
 (``frequency_penalty`` / ``presence_penalty`` on Anthropic, Gemini, Bedrock;
 ``response_format`` on Bedrock; etc.) are silently dropped instead of raising
 ``UnsupportedParamsError``.
+
+The class subclasses ``OpenAICompatProvider`` and overrides only the two
+methods that do the network call (``_call_without_stream`` and
+``_call_with_stream``); the rest of the chat loop, multimodal check,
+retry-on-error logic, streaming-fallback, and response parsing is inherited
+unchanged.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from ...models.message import Message
-from ...models.tool import ToolSpec
-from ...models.trace import TokenUsage
-from .openai_compat import OpenAICompatProvider, _message_to_openai, _tool_spec_to_openai
+from .openai_compat import OpenAICompatProvider
 
 
 class LiteLLMProvider(OpenAICompatProvider):
@@ -49,9 +52,9 @@ class LiteLLMProvider(OpenAICompatProvider):
                 '`pip install "litellm>=1.60,<1.85"`.'
             ) from exc
 
-        # We deliberately skip OpenAICompatProvider.__init__ because that one
-        # builds an `openai.OpenAI` client we never use. Set the same
-        # attributes its inherited methods (notably _parse_response) read.
+        # Skip OpenAICompatProvider.__init__ (we don't need its openai.OpenAI
+        # client). Set every attribute the inherited chat()/_parse_response
+        # methods read.
         self.model_id = model_id
         self.api_key = api_key
         self.base_url = base_url
@@ -64,48 +67,121 @@ class LiteLLMProvider(OpenAICompatProvider):
             merged.update(litellm_kwargs)
         self.litellm_kwargs = merged
 
-    def chat(
-        self,
-        messages: list[Message],
-        tools: list[ToolSpec] | None = None,
-    ) -> tuple[Message, TokenUsage]:
-        """Send messages to the model via litellm.completion and return parsed response."""
+    def _full_kwargs(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Add credentials and litellm-specific kwargs onto the request."""
+        full = dict(kwargs)
+        if self.api_key:
+            full["api_key"] = self.api_key
+        if self.base_url:
+            full["api_base"] = self.base_url
+        # litellm_kwargs come last so users can override anything in `kwargs`
+        # (drop_params, num_retries, custom timeouts, etc.).
+        full.update(self.litellm_kwargs)
+        return full
+
+    def _call_without_stream(self, kwargs: dict[str, Any]) -> Any:
+        """Non-streaming completion via litellm.completion()."""
         import litellm
 
-        oai_messages: list[dict[str, Any]] = []
-        for msg in messages:
-            converted = _message_to_openai(msg)
-            if isinstance(converted, list):
-                oai_messages.extend(converted)
-            else:
-                oai_messages.append(converted)
+        return litellm.completion(**self._full_kwargs(kwargs))
 
-        kwargs: dict[str, Any] = {
-            "model": self.model_id,
-            "messages": oai_messages,
-        }
-        if self.temperature is not None:
-            kwargs["temperature"] = self.temperature
-        if self.extra_body:
-            # litellm forwards extra_body to the underlying provider, same as
-            # the openai SDK path.
-            kwargs["extra_body"] = dict(self.extra_body)
-        if self.reasoning_effort:
-            kwargs["reasoning_effort"] = self.reasoning_effort
-        if tools:
-            kwargs["tools"] = [_tool_spec_to_openai(t) for t in tools]
+    def _call_with_stream(self, kwargs: dict[str, Any]) -> Any:
+        """Streaming completion via litellm.completion(stream=True).
 
-        # Provider-level credentials override per-request env-var resolution
-        # so users with a single shared key (private LiteLLM proxy / custom
-        # OpenAI-compatible endpoint) can configure once.
-        if self.api_key:
-            kwargs["api_key"] = self.api_key
-        if self.base_url:
-            kwargs["api_base"] = self.base_url
+        Mirrors the chunk-assembly pattern in OpenAICompatProvider so the
+        inherited ``_parse_response`` sees the same duck-typed object shape.
+        """
+        import litellm
 
-        # litellm_kwargs (drop_params, num_retries, etc.) come last so users
-        # can override anything above by setting it in litellm_kwargs.
-        kwargs.update(self.litellm_kwargs)
+        stream_kwargs: dict[str, Any] = {"stream": True}
+        # stream_options is OpenAI-specific; Anthropic / Claude endpoints
+        # reject it. LiteLLM normalizes the response shape either way.
+        model_lower = kwargs.get("model", "").lower()
+        is_anthropic = any(s in model_lower for s in ("claude", "anthropic"))
+        if not is_anthropic:
+            stream_kwargs["stream_options"] = {"include_usage": True}
 
-        response = litellm.completion(**kwargs)
-        return self._parse_response(response)
+        full = self._full_kwargs({**kwargs, **stream_kwargs})
+        stream = litellm.completion(**full)
+
+        reasoning_parts: list[str] = []
+        content_parts: list[str] = []
+        tool_calls_by_index: dict[int, dict[str, Any]] = {}
+        usage_info = None
+        has_any_choice = False
+
+        for chunk in stream:
+            if getattr(chunk, "usage", None):
+                usage_info = chunk.usage
+            choices = getattr(chunk, "choices", None) or []
+            if not choices:
+                continue
+            has_any_choice = True
+            delta = choices[0].delta
+
+            rc = getattr(delta, "reasoning_content", None) or getattr(delta, "reasoning", None)
+            if rc:
+                reasoning_parts.append(rc)
+
+            if delta.content:
+                content_parts.append(delta.content)
+
+            if delta.tool_calls:
+                for tc_delta in delta.tool_calls:
+                    idx = tc_delta.index
+                    if idx not in tool_calls_by_index:
+                        tool_calls_by_index[idx] = {"id": "", "name": "", "arguments": ""}
+                    if tc_delta.id:
+                        tool_calls_by_index[idx]["id"] = tc_delta.id
+                    if tc_delta.function:
+                        if tc_delta.function.name:
+                            tool_calls_by_index[idx]["name"] = tc_delta.function.name
+                        if tc_delta.function.arguments:
+                            tool_calls_by_index[idx]["arguments"] += tc_delta.function.arguments
+
+        if not has_any_choice:
+            raise RuntimeError("Model returned empty choices (choices=None or [])")
+
+        class _Msg:
+            pass
+
+        msg = _Msg()
+        msg.content = "".join(content_parts) if content_parts else None
+        msg.reasoning_content = "".join(reasoning_parts) if reasoning_parts else None
+
+        if tool_calls_by_index:
+            assembled = []
+            for idx in sorted(tool_calls_by_index):
+                tc = tool_calls_by_index[idx]
+
+                class _Fn:
+                    pass
+
+                fn = _Fn()
+                fn.name = tc["name"]
+                fn.arguments = tc["arguments"]
+
+                class _TC:
+                    pass
+
+                t = _TC()
+                t.id = tc["id"]
+                t.function = fn
+                assembled.append(t)
+            msg.tool_calls = assembled
+        else:
+            msg.tool_calls = None
+
+        class _Choice:
+            pass
+
+        choice = _Choice()
+        choice.message = msg
+
+        class _Resp:
+            pass
+
+        resp = _Resp()
+        resp.choices = [choice]
+        resp.usage = usage_info
+        return resp

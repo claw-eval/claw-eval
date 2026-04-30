@@ -59,9 +59,6 @@ class JudgeConfig(BaseModel):
     base_url: str = "https://openrouter.ai/api/v1"
     model_id: str = "google/gemini-3-flash-preview"
     enabled: bool = True
-    # Same provider switch as ModelConfig; defaults to OpenRouter via openai_compat.
-    provider: str = "openai_compat"
-    litellm_kwargs: dict | None = None
 
 
 class DefaultsConfig(BaseModel):
