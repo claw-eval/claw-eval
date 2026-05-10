@@ -157,17 +157,24 @@ class TaskValidator:
                     self.warnings.append(f"fixture {fixture_path_str}: empty array")
                     continue
 
-                # Check required fields
+                # Check required fields on every fixture row, not just the
+                # first one. Later rows can be generated or edited separately.
                 svc_name = svc.name
                 if svc_name in FIXTURE_REQUIRED_FIELDS:
                     required = FIXTURE_REQUIRED_FIELDS[svc_name]
-                    first_item = data[0]
-                    for field in required:
-                        if field not in first_item:
+                    for index, item in enumerate(data):
+                        if not isinstance(item, dict):
                             self.errors.append(
-                                f"fixture {fixture_path_str}: missing required field '{field}' "
-                                f"(expected for {svc_name})"
+                                f"fixture {fixture_path_str}[{index}]: expected object, "
+                                f"got {type(item).__name__}"
                             )
+                            continue
+                        for field in required:
+                            if field not in item:
+                                self.errors.append(
+                                    f"fixture {fixture_path_str}[{index}]: missing required field "
+                                    f"'{field}' (expected for {svc_name})"
+                                )
 
     def _check_tool_endpoints(self):
         task = self.task
