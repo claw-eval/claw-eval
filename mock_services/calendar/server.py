@@ -84,8 +84,30 @@ def _log_call(endpoint: str, request_body: dict[str, Any], response_body: Any) -
 
 
 class ListEventsRequest(BaseModel):
-    date: str
+    # Canonical schema: single date + day count
+    date: str | None = None
     days: int = 1
+    # Alias schema used by several task.yaml tool definitions (see commit 39b27dc).
+    # Either {date, days} or {start_date[, end_date]} is accepted.
+    start_date: str | None = None
+    end_date: str | None = None
+
+    def resolved(self) -> tuple[str, int]:
+        """Return (date, days) honoring both schemas. Raises ValueError if neither given."""
+        if self.date:
+            return self.date, max(1, self.days)
+        if self.start_date:
+            if self.end_date:
+                try:
+                    s = datetime.strptime(self.start_date, "%Y-%m-%d")
+                    e = datetime.strptime(self.end_date, "%Y-%m-%d")
+                    days = max(1, (e - s).days + 1)
+                except ValueError:
+                    days = max(1, self.days)
+            else:
+                days = max(1, self.days)
+            return self.start_date, days
+        raise ValueError("Either 'date' or 'start_date' must be provided")
 
 
 class GetEventRequest(BaseModel):
@@ -114,13 +136,19 @@ def list_events(req: ListEventsRequest | None = None) -> dict[str, Any]:
     if req is None:
         req = ListEventsRequest(date="2026-03-02")
     try:
-        query_date = datetime.strptime(req.date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        date_str, days = req.resolved()
+    except ValueError as exc:
+        resp = {"error": str(exc)}
+        _log_call("/calendar/events", req.model_dump(exclude_none=True), resp)
+        return resp
+    try:
+        query_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     except ValueError:
-        resp = {"error": f"Invalid date format: {req.date}"}
-        _log_call("/calendar/events", req.model_dump(), resp)
+        resp = {"error": f"Invalid date format: {date_str}"}
+        _log_call("/calendar/events", req.model_dump(exclude_none=True), resp)
         return resp
 
-    end_date = query_date + timedelta(days=req.days)
+    end_date = query_date + timedelta(days=days)
     results = []
     for evt in _events:
         evt_start = datetime.fromisoformat(evt["start_time"].replace("Z", "+00:00"))
