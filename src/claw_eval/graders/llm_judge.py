@@ -7,6 +7,7 @@ import random
 import re
 import time
 
+import httpx
 from openai import OpenAI
 from pydantic import BaseModel
 
@@ -68,6 +69,60 @@ class LLMJudge:
         self.model_id = model_id
         self._call_log: list[dict] = []
 
+        self._use_gemini = "gemini" in model_id.lower()
+        if self._use_gemini:
+            self._gemini_api_key = api_key or "dummy"
+            self._gemini_model = model_id.split("/")[-1]
+            root = base_url.rstrip("/")
+            if root.endswith("/v1"):
+                root = root[:-3]
+            self._gemini_url = (
+                f"{root}/v1beta/models/{self._gemini_model}:generateContent"
+            )
+        print(f"[judge-init] model={model_id} gemini={self._use_gemini}"
+              f" url={getattr(self, '_gemini_url', 'N/A')}")
+
+    def _call_gemini(
+        self, system_prompt: str, user_content: str | list[dict],
+    ) -> str:
+        """Send a Gemini-native generateContent request and return text."""
+        if isinstance(user_content, str):
+            parts = [{"text": user_content}]
+        else:
+            parts = []
+            for p in user_content:
+                if p.get("type") == "text":
+                    parts.append({"text": p["text"]})
+                elif p.get("type") == "image_url":
+                    url = p["image_url"]["url"]
+                    if url.startswith("data:"):
+                        meta, b64_data = url.split(",", 1)
+                        mime = meta.split(":")[1].split(";")[0]
+                        parts.append({
+                            "inline_data": {"mime_type": mime, "data": b64_data},
+                        })
+        body: dict = {
+            "contents": [{"role": "user", "parts": parts}],
+            "generationConfig": {
+                "temperature": 0.0,
+                "maxOutputTokens": 8192,
+            },
+        }
+        if system_prompt:
+            body["system_instruction"] = {"parts": [{"text": system_prompt}]}
+        resp = httpx.post(
+            self._gemini_url,
+            json=body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self._gemini_api_key}",
+            },
+            timeout=300.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+
     def evaluate(
         self,
         task_prompt: str,
@@ -86,16 +141,19 @@ class LLMJudge:
         last_exc: Exception | None = None
         for attempt in range(max_retries + 1):
             try:
-                resp = self.client.chat.completions.create(
-                    model=self.model_id,
-                    messages=[
-                        {"role": "system", "content": _SYSTEM_PROMPT},
-                        {"role": "user", "content": user_msg},
-                    ],
-                    temperature=0.0,
-                    max_tokens=8192,
-                )
-                raw = resp.choices[0].message.content or "{}"
+                if self._use_gemini:
+                    raw = self._call_gemini(_SYSTEM_PROMPT, user_msg)
+                else:
+                    resp = self.client.chat.completions.create(
+                        model=self.model_id,
+                        messages=[
+                            {"role": "system", "content": _SYSTEM_PROMPT},
+                            {"role": "user", "content": user_msg},
+                        ],
+                        temperature=0.0,
+                        max_tokens=8192,
+                    )
+                    raw = resp.choices[0].message.content or "{}"
                 # Strip markdown code fences if present
                 raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
                 raw = re.sub(r"\s*```$", "", raw.strip())
@@ -129,7 +187,11 @@ class LLMJudge:
                 return result
             except Exception as exc:
                 last_exc = exc
-                status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+                status = (
+                    getattr(exc, "status_code", None)
+                    or getattr(exc, "code", None)
+                    or getattr(getattr(exc, "response", None), "status_code", None)
+                )
                 delay = min(2 ** (attempt + 1), 8) + random.uniform(0, 1)
                 print(f"[judge-retry] ({status or type(exc).__name__}), "
                       f"attempt {attempt + 1}/{max_retries}, waiting {delay:.1f}s ...")
@@ -156,16 +218,19 @@ class LLMJudge:
         last_exc: Exception | None = None
         for attempt in range(max_retries + 1):
             try:
-                resp = self.client.chat.completions.create(
-                    model=self.model_id,
-                    messages=[
-                        {"role": "system", "content": _ACTIONS_SYSTEM_PROMPT},
-                        {"role": "user", "content": user_msg},
-                    ],
-                    temperature=0.0,
-                    max_tokens=8192,
-                )
-                raw = resp.choices[0].message.content or "{}"
+                if self._use_gemini:
+                    raw = self._call_gemini(_ACTIONS_SYSTEM_PROMPT, user_msg)
+                else:
+                    resp = self.client.chat.completions.create(
+                        model=self.model_id,
+                        messages=[
+                            {"role": "system", "content": _ACTIONS_SYSTEM_PROMPT},
+                            {"role": "user", "content": user_msg},
+                        ],
+                        temperature=0.0,
+                        max_tokens=8192,
+                    )
+                    raw = resp.choices[0].message.content or "{}"
                 raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
                 raw = re.sub(r"\s*```$", "", raw.strip())
                 m = re.search(r'\{[^{}]*\}', raw)
@@ -197,7 +262,11 @@ class LLMJudge:
                 return result
             except Exception as exc:
                 last_exc = exc
-                status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+                status = (
+                    getattr(exc, "status_code", None)
+                    or getattr(exc, "code", None)
+                    or getattr(getattr(exc, "response", None), "status_code", None)
+                )
                 delay = min(2 ** (attempt + 1), 8) + random.uniform(0, 1)
                 print(f"[judge-retry] ({status or type(exc).__name__}), "
                       f"attempt {attempt + 1}/{max_retries}, waiting {delay:.1f}s ...")
@@ -258,16 +327,21 @@ class LLMJudge:
         last_exc: Exception | None = None
         for attempt in range(max_retries + 1):
             try:
-                resp = self.client.chat.completions.create(
-                    model=self.model_id,
-                    messages=[
-                        {"role": "system", "content": _VISUAL_SYSTEM_PROMPT},
-                        {"role": "user", "content": content_parts},
-                    ],
-                    temperature=0.0,
-                    max_tokens=8192,
-                )
-                raw = resp.choices[0].message.content or "{}"
+                if self._use_gemini:
+                    raw = self._call_gemini(
+                        _VISUAL_SYSTEM_PROMPT, content_parts,
+                    )
+                else:
+                    resp = self.client.chat.completions.create(
+                        model=self.model_id,
+                        messages=[
+                            {"role": "system", "content": _VISUAL_SYSTEM_PROMPT},
+                            {"role": "user", "content": content_parts},
+                        ],
+                        temperature=0.0,
+                        max_tokens=8192,
+                    )
+                    raw = resp.choices[0].message.content or "{}"
                 raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
                 raw = re.sub(r"\s*```$", "", raw.strip())
                 m = re.search(r'\{[^{}]*\}', raw)
@@ -302,7 +376,11 @@ class LLMJudge:
                 return result
             except Exception as exc:
                 last_exc = exc
-                status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+                status = (
+                    getattr(exc, "status_code", None)
+                    or getattr(exc, "code", None)
+                    or getattr(getattr(exc, "response", None), "status_code", None)
+                )
                 delay = min(2 ** (attempt + 1), 8) + random.uniform(0, 1)
                 print(f"[judge-visual-retry] ({status or type(exc).__name__}), "
                       f"attempt {attempt + 1}/{max_retries}, waiting {delay:.1f}s ...")
