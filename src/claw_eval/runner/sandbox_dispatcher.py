@@ -141,7 +141,10 @@ class SandboxToolDispatcher:
         payload = dict(tool_use.input)
         if tool_use.name == "Bash":
             if "timeout" in payload:
-                payload["timeout_seconds"] = max(1, payload.pop("timeout") // 1000)
+                try:
+                    payload["timeout_seconds"] = max(1, int(payload.pop("timeout")) // 1000)
+                except (ValueError, TypeError):
+                    payload["timeout_seconds"] = 30
             payload.pop("description", None)
             payload.pop("run_in_background", None)
         elif tool_use.name in ("Read", "Write", "Edit"):
@@ -308,7 +311,10 @@ class SandboxToolDispatcher:
         # Accept timeout in ms (Claude Code style) or seconds (legacy)
         timeout_ms = inp.get("timeout")
         if timeout_ms is not None:
-            timeout = max(1, timeout_ms // 1000)
+            try:
+                timeout = max(1, int(timeout_ms) // 1000)
+            except (ValueError, TypeError):
+                timeout = 30
         else:
             timeout = inp.get("timeout_seconds", 30)
         try:
