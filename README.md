@@ -38,6 +38,7 @@ We sincerely thank the teams behind [Meta (Muse Spark)](https://x.com/alexandr_w
 To run Claw-Eval and submit results to join the leaderboard, contact: **bwye@stu.pku.edu.cn**, **lirang410@gmail.com**, **nlp.lilei@gmail.com**.
 
 ## 📢 Updates
+* **EvalScope integration** — EvalScope supports running Claw-Eval against OpenAI-compatible model endpoints with CLI/Python usage, saved predictions, scoring, and standardized reports. See the EvalScope guide: https://evalscope.readthedocs.io/en/latest/benchmarks/claw_eval.html
 * **v1.1.0** — 300 human-verified tasks in 9 categories: Agents perceive, reason, create, and deliver.
 
 * **v1.0.0** — Built on reproducible real-world complexity.
