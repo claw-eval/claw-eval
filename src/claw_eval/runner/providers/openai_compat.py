@@ -179,7 +179,9 @@ def _blocks_to_openai_content(msg: Message) -> str | list[dict[str, Any]]:
     return parts
 
 
-def _message_to_openai(msg: Message) -> dict[str, Any] | list[dict[str, Any]]:
+def _message_to_openai(
+    msg: Message, reasoning_field: str = "reasoning_content"
+) -> dict[str, Any] | list[dict[str, Any]]:
     """Convert our Message to OpenAI chat format.
 
     Returns a single dict for simple messages, or a list of dicts
@@ -217,9 +219,7 @@ def _message_to_openai(msg: Message) -> dict[str, Any] | list[dict[str, Any]]:
             ],
         }
         if msg.reasoning_content:
-            # Use "reasoning" for OpenRouter compatibility (also accepted as
-            # "reasoning_content" by native DeepSeek/QwQ endpoints).
-            d["reasoning"] = msg.reasoning_content
+            d[reasoning_field] = msg.reasoning_content
         return d
 
     # Simple text message
@@ -228,7 +228,7 @@ def _message_to_openai(msg: Message) -> dict[str, Any] | list[dict[str, Any]]:
         "content": _blocks_to_openai_content(msg),
     }
     if msg.reasoning_content:
-        d["reasoning"] = msg.reasoning_content
+        d[reasoning_field] = msg.reasoning_content
     return d
 
 
@@ -243,11 +243,21 @@ class OpenAICompatProvider:
         extra_body: dict | None = None,
         temperature: float | None = 0.0,
         reasoning_effort: str | None = None,
+        reasoning_field: str | None = None,
     ) -> None:
         self.model_id = model_id
         self.extra_body = extra_body or {}
         self.temperature = temperature
         self.reasoning_effort = reasoning_effort
+        # Reasoning is carried into multi-turn history under a provider-specific
+        # key: OpenRouter reads "reasoning"; SGLang/vLLM read "reasoning_content".
+        # Explicit config wins; otherwise infer from base_url.
+        if reasoning_field:
+            self._reasoning_field = reasoning_field
+        elif base_url and "openrouter" in base_url:
+            self._reasoning_field = "reasoning"
+        else:
+            self._reasoning_field = "reasoning_content"
         resolved_key = api_key or os.environ.get("OPENAI_API_KEY") or "unused"
         self.client = OpenAI(
             api_key=resolved_key,
@@ -270,7 +280,7 @@ class OpenAICompatProvider:
         # Build OpenAI messages list
         oai_messages: list[dict[str, Any]] = []
         for msg in messages:
-            converted = _message_to_openai(msg)
+            converted = _message_to_openai(msg, self._reasoning_field)
             if isinstance(converted, list):
                 oai_messages.extend(converted)
             else:

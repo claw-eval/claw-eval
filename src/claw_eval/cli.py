@@ -358,6 +358,7 @@ def cmd_run(args: argparse.Namespace) -> None:
             extra_body=cfg.model.extra_body,
             temperature=cfg.model.temperature,
             reasoning_effort=cfg.model.reasoning_effort,
+            reasoning_field=cfg.model.reasoning_field,
         )
         judge = _make_judge(cfg, args)
         trials = args.trials or 1
@@ -483,6 +484,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         extra_body=cfg.model.extra_body,
         temperature=cfg.model.temperature,
         reasoning_effort=cfg.model.reasoning_effort,
+        reasoning_field=cfg.model.reasoning_field,
     )
 
     judge = _make_judge(cfg, args)
@@ -600,6 +602,7 @@ def cmd_run_inner(args: argparse.Namespace) -> None:
         extra_body=cfg.model.extra_body,
         temperature=cfg.model.temperature,
         reasoning_effort=cfg.model.reasoning_effort,
+        reasoning_field=cfg.model.reasoning_field,
     )
 
     sandbox_tools = getattr(args, "sandbox_tools", False)
@@ -814,6 +817,7 @@ def _run_single_task(
         extra_body=cfg.model.extra_body,
         temperature=cfg.model.temperature,
         reasoning_effort=cfg.model.reasoning_effort,
+        reasoning_field=cfg.model.reasoning_field,
     )
 
     # Build judge if needed

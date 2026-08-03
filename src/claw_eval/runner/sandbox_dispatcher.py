@@ -72,6 +72,19 @@ def _compress_image_b64(
         return data_b64
 
 
+def _as_int(v, default=None):
+    """Coerce a model-supplied value to int, tolerating stringified numbers.
+
+    Models often emit numeric tool arguments as JSON strings ("60000") or
+    floats. ``int(float(v))`` handles both; anything un-coercible (None,
+    "fast", []) falls back to *default* instead of raising.
+    """
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return default
+
+
 class SandboxToolDispatcher:
     """Routes sandbox tools to container HTTP or local fallback; others via HTTP."""
 
@@ -141,7 +154,10 @@ class SandboxToolDispatcher:
         payload = dict(tool_use.input)
         if tool_use.name == "Bash":
             if "timeout" in payload:
-                payload["timeout_seconds"] = max(1, payload.pop("timeout") // 1000)
+                ms = _as_int(payload.pop("timeout"))
+                if ms is not None:
+                    payload["timeout_seconds"] = max(1, ms // 1000)
+                # un-coercible timeout: drop it, let server ExecRequest default (30s) apply
             payload.pop("description", None)
             payload.pop("run_in_background", None)
         elif tool_use.name in ("Read", "Write", "Edit"):
@@ -171,9 +187,9 @@ class SandboxToolDispatcher:
             )
 
         endpoint_url = f"{self._sandbox_url}{path}"
-        payload = self._translate_payload(tool_use)
         t0 = time.monotonic()
         try:
+            payload = self._translate_payload(tool_use)
             client = self._get_client()
             resp = client.post(endpoint_url, json=payload)
             latency_ms = (time.monotonic() - t0) * 1000
@@ -306,11 +322,11 @@ class SandboxToolDispatcher:
     def _handle_shell_exec(inp: dict) -> dict:
         command = inp["command"]
         # Accept timeout in ms (Claude Code style) or seconds (legacy)
-        timeout_ms = inp.get("timeout")
+        timeout_ms = _as_int(inp.get("timeout"))
         if timeout_ms is not None:
             timeout = max(1, timeout_ms // 1000)
         else:
-            timeout = inp.get("timeout_seconds", 30)
+            timeout = _as_int(inp.get("timeout_seconds"), default=30)
         try:
             proc = subprocess.run(
                 command,

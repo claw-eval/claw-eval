@@ -46,6 +46,9 @@ class ModelConfig(BaseModel):
     system_prompt_prefix: str | None = None
     extra_body: dict | None = None
     reasoning_effort: str | None = None
+    # Key used to carry reasoning into multi-turn history. None = infer from
+    # base_url (OpenRouter → "reasoning"; SGLang/vLLM/others → "reasoning_content").
+    reasoning_field: str | None = None
     context_window: int = 262144
     temperature: float | None = 0.0  # None = don't send temperature param
 
