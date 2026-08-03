@@ -93,7 +93,7 @@ export SERP_DEV_KEY=... # add this for tasks need real web search.  You can get 
 bash scripts/test_sandbox.sh
 ```
 
-> **Note on video fixtures:** Due to file size limits, this GitHub repository does not include video files for video-related tasks. The complete fixtures (including all videos) are available on Hugging Face: [claw-eval/Claw-Eval](https://huggingface.co/datasets/claw-eval/Claw-Eval).
+> **Note on all fixtures:** Due to file size limits, the complete fixtures (including all videos) are available on Hugging Face: [claw-eval/Claw-Eval](https://huggingface.co/datasets/claw-eval/Claw-Eval).
 
 > **Note on grade:** we use **gemini-3-flash** in general and multimodal tasks while **claude opus4.6** for both grader and user-agent in multi_turn tasks!
 
@@ -103,6 +103,14 @@ Go rock 🚀
 claw-eval batch --config model_configs/claude_opus_46.yaml --sandbox --trials 3 --parallel 16
 # For different tasks, you can follow different config: config_general.yaml/config_multimodal.yaml/config_user_agent.yaml.
 ```
+
+---
+
+## Reliable Web Access for Agent Evaluation
+
+Novada provides Web Scraper API, Web Unblocker, and residential proxies for live-web agent tasks. Give Claw-Eval runs dependable access to search results and dynamic pages, helping keep web-dependent evaluations reproducible.
+
+[Get an API key from Novada](https://www.novada.com/?claw-eval)
 
 ---
 
