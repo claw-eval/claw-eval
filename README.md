@@ -104,6 +104,39 @@ claw-eval batch --config model_configs/claude_opus_46.yaml --sandbox --trials 3 
 # For different tasks, you can follow different config: config_general.yaml/config_multimodal.yaml/config_user_agent.yaml.
 ```
 
+### LiteLLM provider (optional)
+
+By default claw-eval routes models through any OpenAI-compatible endpoint
+(OpenRouter, vLLM, a self-hosted LiteLLM proxy, etc.) using the `openai_compat`
+provider. If you want to skip the proxy and call providers directly through the
+embedded LiteLLM SDK, install the optional extra and set `provider: "litellm"`
+on `model:` in your config.
+
+```bash
+pip install "claw-eval[litellm]"
+```
+
+```yaml
+model:
+  provider: litellm
+  model_id: anthropic/claude-3-5-sonnet-20241022
+  # api_key / base_url are optional — LiteLLM resolves provider keys from
+  # ANTHROPIC_API_KEY / OPENAI_API_KEY / AWS_ACCESS_KEY_ID / AZURE_API_KEY / etc.
+  # Override only for OpenAI-compatible custom endpoints (private LiteLLM proxy,
+  # Azure Foundry deployment).
+  # api_key: sk-ant-...
+  # base_url: https://your-foundry-endpoint/anthropic
+  # Forwarded to every litellm.completion call. drop_params=True (default)
+  # silently strips kwargs the upstream provider doesn't accept.
+  litellm_kwargs:
+    drop_params: true
+    num_retries: 5
+```
+
+This makes any LiteLLM-supported model available without running an extra
+proxy server. See <https://docs.litellm.ai/docs/providers> for the full
+provider list.
+
 ---
 
 ## Roadmap
