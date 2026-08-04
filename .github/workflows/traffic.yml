@@ -21,7 +21,7 @@ jobs:
 
       - name: Fetch or bootstrap the traffic branch
         env:
-          TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           URL="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
@@ -35,7 +35,9 @@ jobs:
 
       - name: Collect counters
         env:
-          GITHUB_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+          # The traffic API needs Administration:read, which GITHUB_TOKEN cannot be
+          # granted, so it requires a PAT. Git operations still use GITHUB_TOKEN.
+          GITHUB_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
           TRAFFIC_REPO: ${{ github.repository }}
         run: python3 .github/collect_traffic.py --out-dir archive
 
