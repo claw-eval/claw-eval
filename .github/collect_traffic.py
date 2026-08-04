@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,8 +24,15 @@ warnings: list[str] = []
 
 def fetch_json(url: str, headers: dict | None = None, timeout: int = 30):
     req = urllib.request.Request(url, headers={"User-Agent": UA, **(headers or {})})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.load(resp)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.load(resp)
+    except urllib.error.HTTPError as exc:
+        # GitHub explains 403s in the response body ("Resource not accessible by
+        # personal access token", "Must have push access to repository"); the
+        # exception's str() carries only the status line.
+        detail = exc.read().decode("utf-8", "replace").replace("\n", " ")[:300]
+        raise RuntimeError(f"HTTP {exc.code} {exc.reason} — {detail}") from None
 
 
 def fetch_traffic(kind: str, token: str) -> dict[str, dict[str, int]]:
@@ -70,6 +78,9 @@ def humanize(n: int) -> str:
 
 
 def collect(archive: dict, token: str | None) -> dict:
+    if token:
+        kind = "fine-grained" if token.startswith("github_pat_") else "classic/other"
+        print(f"::notice::traffic token type: {kind}", file=sys.stderr)
     for kind in ("clones", "views"):
         if not token:
             warnings.append(f"no token available, skipped {kind}")
