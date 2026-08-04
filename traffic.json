@@ -1,0 +1,127 @@
+{
+  "updated_at": "2026-08-04T10:08:48Z",
+  "since": "2026-07-18",
+  "clones_total": 4535,
+  "clones_uniques_sum": 804,
+  "views_total": 2510,
+  "views_uniques_sum": 889,
+  "hf_downloads_all_time": 15300,
+  "modelscope_downloads": 6427,
+  "dataset_downloads_total": 21727,
+  "clones": {
+    "2026-07-18": {
+      "count": 102,
+      "uniques": 30
+    },
+    "2026-07-19": {
+      "count": 80,
+      "uniques": 28
+    },
+    "2026-07-20": {
+      "count": 519,
+      "uniques": 53
+    },
+    "2026-07-21": {
+      "count": 341,
+      "uniques": 40
+    },
+    "2026-07-22": {
+      "count": 185,
+      "uniques": 40
+    },
+    "2026-07-23": {
+      "count": 389,
+      "uniques": 51
+    },
+    "2026-07-24": {
+      "count": 1571,
+      "uniques": 254
+    },
+    "2026-07-25": {
+      "count": 47,
+      "uniques": 19
+    },
+    "2026-07-26": {
+      "count": 39,
+      "uniques": 27
+    },
+    "2026-07-27": {
+      "count": 482,
+      "uniques": 76
+    },
+    "2026-07-28": {
+      "count": 156,
+      "uniques": 51
+    },
+    "2026-07-29": {
+      "count": 375,
+      "uniques": 58
+    },
+    "2026-07-30": {
+      "count": 169,
+      "uniques": 47
+    },
+    "2026-07-31": {
+      "count": 80,
+      "uniques": 30
+    }
+  },
+  "views": {
+    "2026-07-18": {
+      "count": 86,
+      "uniques": 24
+    },
+    "2026-07-19": {
+      "count": 68,
+      "uniques": 24
+    },
+    "2026-07-20": {
+      "count": 235,
+      "uniques": 105
+    },
+    "2026-07-21": {
+      "count": 167,
+      "uniques": 61
+    },
+    "2026-07-22": {
+      "count": 165,
+      "uniques": 76
+    },
+    "2026-07-23": {
+      "count": 331,
+      "uniques": 102
+    },
+    "2026-07-24": {
+      "count": 244,
+      "uniques": 77
+    },
+    "2026-07-25": {
+      "count": 57,
+      "uniques": 30
+    },
+    "2026-07-26": {
+      "count": 108,
+      "uniques": 33
+    },
+    "2026-07-27": {
+      "count": 249,
+      "uniques": 65
+    },
+    "2026-07-28": {
+      "count": 236,
+      "uniques": 71
+    },
+    "2026-07-29": {
+      "count": 192,
+      "uniques": 67
+    },
+    "2026-07-30": {
+      "count": 225,
+      "uniques": 84
+    },
+    "2026-07-31": {
+      "count": 147,
+      "uniques": 70
+    }
+  }
+}
