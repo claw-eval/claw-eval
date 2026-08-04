@@ -1,0 +1,54 @@
+name: traffic
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: traffic-archive
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+
+      - name: Fetch or bootstrap the traffic branch
+        env:
+          TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          URL="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$URL" traffic >/dev/null 2>&1; then
+            git clone --branch traffic --single-branch --depth 1 "$URL" archive
+          else
+            mkdir archive
+            git -C archive init -q -b traffic
+            git -C archive remote add origin "$URL"
+          fi
+
+      - name: Collect counters
+        env:
+          GITHUB_TOKEN: ${{ secrets.TRAFFIC_TOKEN || secrets.GITHUB_TOKEN }}
+          TRAFFIC_REPO: ${{ github.repository }}
+        run: python3 .github/collect_traffic.py --out-dir archive
+
+      - name: Commit and push
+        working-directory: archive
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "counters unchanged, nothing to push"
+            exit 0
+          fi
+          git commit -q -m "traffic: counters as of $(date -u +%F)"
+          git push -q origin traffic

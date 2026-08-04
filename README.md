@@ -134,6 +134,16 @@ Our test cases are built on the work of the community. We draw from and adapt ta
 ## Advisors
 [Tong Yang](https://yangtonghome.github.io/) (PKU), [Zhifang Sui](https://cs.pku.edu.cn/info/1226/2014.htm) (PKU), [Lingpeng Kong](https://ikekonglp.github.io/) (HKU), [Qi Liu](https://leuchine.github.io/) (HKU)
 
+## Usage Statistics
+
+[![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fclaw-eval%2Fclaw-eval%2Ftraffic%2Fbadge-clones.json)](https://github.com/claw-eval/claw-eval/blob/traffic/traffic.json)
+[![Views](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fclaw-eval%2Fclaw-eval%2Ftraffic%2Fbadge-views.json)](https://github.com/claw-eval/claw-eval/blob/traffic/traffic.json)
+[![Dataset Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fclaw-eval%2Fclaw-eval%2Ftraffic%2Fbadge-downloads.json)](https://huggingface.co/datasets/claw-eval/Claw-Eval)
+
+Clones and views are accumulated daily from the GitHub Traffic API since 2026-07-22.
+Dataset downloads are the sum of all-time HuggingFace and ModelScope counts.
+Raw daily data lives in [`traffic/traffic.json`](https://github.com/claw-eval/claw-eval/blob/traffic/traffic.json).
+
 ## Citation
 
 If you use Claw-Eval in your research, please cite:
