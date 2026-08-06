@@ -40,6 +40,41 @@ def _audio_format_from_mime(mime_type: str) -> str:
     return "wav"
 
 
+def _usage_value(obj: Any, key: str, default: Any = 0) -> Any:
+    """Read a usage field from SDK objects or plain dicts."""
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        value = obj.get(key, default)
+    else:
+        value = getattr(obj, key, default)
+    return value or default
+
+
+def _token_usage_from_response_usage(response_usage: Any) -> TokenUsage:
+    """Normalize provider usage payloads into trace token counters."""
+    if not response_usage:
+        return TokenUsage()
+
+    prompt_details = _usage_value(response_usage, "prompt_tokens_details", None)
+    cached_input_tokens = _usage_value(prompt_details, "cached_tokens")
+    cache_creation_input_tokens = _usage_value(response_usage, "cache_creation_input_tokens")
+    cache_read_input_tokens = _usage_value(response_usage, "cache_read_input_tokens")
+
+    # Anthropic-compatible endpoints expose cache reads separately from OpenAI's
+    # prompt_tokens_details.cached_tokens shape. Count them as cached input too.
+    if cache_read_input_tokens and not cached_input_tokens:
+        cached_input_tokens = cache_read_input_tokens
+
+    return TokenUsage(
+        input_tokens=_usage_value(response_usage, "prompt_tokens"),
+        output_tokens=_usage_value(response_usage, "completion_tokens"),
+        cached_input_tokens=cached_input_tokens,
+        cache_creation_input_tokens=cache_creation_input_tokens,
+        cache_read_input_tokens=cache_read_input_tokens,
+    )
+
+
 _TOOL_CALL_BLOCK_RE = re.compile(
     r"<tool_call>\s*(.*?)\s*</tool_call>",
     flags=re.IGNORECASE | re.DOTALL,
@@ -537,10 +572,7 @@ class OpenAICompatProvider:
 
         usage = TokenUsage()
         if response.usage:
-            usage = TokenUsage(
-                input_tokens=response.usage.prompt_tokens,
-                output_tokens=response.usage.completion_tokens,
-            )
+            usage = _token_usage_from_response_usage(response.usage)
 
         # Capture reasoning_content from thinking models (DeepSeek-R1, QwQ, etc.)
         # OpenRouter returns "reasoning" instead of "reasoning_content"
