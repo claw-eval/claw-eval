@@ -17,6 +17,9 @@ def _now() -> str:
 class TokenUsage(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+    cache_read_input_tokens: int = 0
 
 
 class DimensionScores(BaseModel):
@@ -92,6 +95,9 @@ class TraceEnd(BaseModel):
     model_output_tokens: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+    cache_read_input_tokens: int = 0
     total_tokens: int = 0
     model_time_s: float = 0.0
     tool_time_s: float = 0.0

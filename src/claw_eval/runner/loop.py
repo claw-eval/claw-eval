@@ -404,6 +404,9 @@ def run_task(
                 model_time_s += time.monotonic() - model_t0
                 total_usage.input_tokens += usage.input_tokens
                 total_usage.output_tokens += usage.output_tokens
+                total_usage.cached_input_tokens += usage.cached_input_tokens
+                total_usage.cache_creation_input_tokens += usage.cache_creation_input_tokens
+                total_usage.cache_read_input_tokens += usage.cache_read_input_tokens
                 turn_count += 1
 
                 # Log assistant message
@@ -558,6 +561,9 @@ def run_task(
             model_output_tokens=output_tok,
             input_tokens=input_tok,
             output_tokens=output_tok,
+            cached_input_tokens=total_usage.cached_input_tokens,
+            cache_creation_input_tokens=total_usage.cache_creation_input_tokens,
+            cache_read_input_tokens=total_usage.cache_read_input_tokens,
             total_tokens=total_tok,
             model_time_s=round(model_time_s, 2),
             tool_time_s=round(tool_time_s, 2),
