@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-08-12T05:01:05Z",
+  "updated_at": "2026-08-13T05:03:18Z",
   "since": "2026-07-18",
-  "clones_total": 7290,
-  "clones_uniques_sum": 1212,
-  "views_total": 4554,
-  "views_uniques_sum": 1447,
+  "clones_total": 7499,
+  "clones_uniques_sum": 1275,
+  "views_total": 4724,
+  "views_uniques_sum": 1520,
   "hf_downloads_all_time": 15852,
-  "modelscope_downloads": 7610,
-  "dataset_downloads_total": 23462,
+  "modelscope_downloads": 7633,
+  "dataset_downloads_total": 23485,
   "clones": {
     "2026-07-18": {
       "count": 102,
@@ -104,6 +104,10 @@
     "2026-08-10": {
       "count": 132,
       "uniques": 62
+    },
+    "2026-08-11": {
+      "count": 209,
+      "uniques": 63
     }
   },
   "views": {
@@ -202,6 +206,10 @@
     "2026-08-10": {
       "count": 151,
       "uniques": 79
+    },
+    "2026-08-11": {
+      "count": 170,
+      "uniques": 73
     }
   }
 }
