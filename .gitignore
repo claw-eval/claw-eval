@@ -6,6 +6,8 @@ build/
 .eggs/
 .DS_Store
 .venv/
+.env
+token_usage_log/
 uv.lock
 
 # Traces (generated output, don't commit)
@@ -15,6 +17,13 @@ traces_*/
 .vscode/
 CLAUDE.md
 *.sh
+
+# Local evaluation inputs and launch configuration
+model_configs/
+tasks-08*/
+*.tar.gz
+*.tgz
+*.rar
 
 tasks/*/fixtures/*.mp4
 tasks/*/fixtures/*.webm
