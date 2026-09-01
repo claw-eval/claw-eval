@@ -1,0 +1,23 @@
+Extracted from `company_expenses.xlsx`.
+
+Sheet: Q1_Expenses
+Employee,Department,Category,Amount,Date
+Alice Chen,Engineering,Travel,1250,2024-01-10
+Bob Martinez,Marketing,Software,450,2024-01-15
+Alice Chen,Engineering,Equipment,3200,2024-02-01
+Carol Davis,Sales,Travel,890,2024-02-10
+Bob Martinez,Marketing,Travel,1100,2024-02-20
+Diana Park,Engineering,Software,780,2024-03-01
+Carol Davis,Sales,Client Entertainment,540,2024-03-05
+Alice Chen,Engineering,Travel,950,2024-03-10
+Bob Martinez,Marketing,Advertising,2800,2024-03-15
+Diana Park,Engineering,Equipment,1500,2024-03-20
+Carol Davis,Sales,Travel,1350,2024-03-25
+Eve Johnson,HR,Software,620,2024-03-28
+
+Sheet: Budgets
+Department,Q1_Budget,Q2_Budget,Q3_Budget,Q4_Budget
+Engineering,25000,28000,30000,27000
+Marketing,15000,18000,20000,16000
+Sales,12000,14000,15000,13000
+HR,8000,8500,9000,8500
