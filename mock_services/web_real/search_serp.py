@@ -1,34 +1,44 @@
-"""
-Search SERP — raw web skill
+"""Search SERP through yibuapi's Serper-compatible endpoint.
 
-GET https://scraperapi.novada.com/search
-Query params:
-    engine:     "google"
-    api_key:    <SERP_DEV_KEY>
-    q:          <query>
-    num:        <str int, 1-10>
-    hl:         "zh" | "en"  (auto-detected from query)
-    gl:         "cn" | "us"  (auto-detected from query)
-    start:      <int, 0-based offset>
-    fetch_mode: "static"
-    no_cache:   "true"
-
-Input:  query (str), timeout (int), num (int), start (int)
-Output: {"status": <int>, "output": <list[dict]>}
+The public ``search_serp`` return shape stays compatible with the web_real
+service while the upstream request uses POST JSON plus Bearer authentication.
 """
+
+from __future__ import annotations
 
 import os
 import re
 import requests
 
-SERP_API_URL = os.getenv("SERP_API_URL", "https://scraperapi.novada.com/search")
-SERP_DEV_KEY = os.getenv("SERP_DEV_KEY", "YOUR_API_KEY")
+SERP_API_URL = os.getenv("SERP_API_URL", "https://yibuapi.com/serper/search")
+SERP_DEV_KEY = (
+    os.getenv("SERP_API_KEY")
+    or os.getenv("SERP_DEV_KEY")
+    or os.getenv("YIBUAPI_KEY", "")
+)
 
 
 def _detect_language(query: str) -> tuple[str, str]:
     if re.search(r"[\u4e00-\u9fff]", query):
         return "zh", "cn"
     return "en", "us"
+
+
+def _log_serp_request(query: str, status: int) -> None:
+    """Record a Serper request without making logging affect search."""
+    try:
+        from claw_eval.token_log import log_usage
+
+        log_usage(
+            role="serp",
+            model="serper/search",
+            usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            messages=[{"role": "user", "content": query}],
+            answer=f"HTTP {status}",
+            api_key=SERP_DEV_KEY,
+        )
+    except Exception:
+        pass
 
 
 def search_serp(
@@ -53,35 +63,38 @@ def search_serp(
                 title, link, snippet, date, query.
     """
     hl, gl = _detect_language(query)
-    params = {
-        "engine": "google",
-        "api_key": SERP_DEV_KEY,
+    n = min(max(num, 1), 10)
+    page = max(1, ((max(start, 1) - 1) // n) + 1)
+    body = {
         "q": query,
-        "num": str(min(max(num, 1), 10)),
+        "num": n,
         "hl": hl,
         "gl": gl,
-        "start": str(max(start, 1)),
-        "fetch_mode": "static",
-        "no_cache": "true",
+        "page": page,
+    }
+    headers = {
+        "Authorization": f"Bearer {SERP_DEV_KEY}",
+        "Content-Type": "application/json",
     }
     try:
-        resp = requests.get(SERP_API_URL, params=params, timeout=timeout)
+        resp = requests.post(SERP_API_URL, headers=headers, json=body, timeout=timeout)
+        _log_serp_request(query, resp.status_code)
         if raw_save_path and resp.status_code == 200:
             os.makedirs(os.path.dirname(raw_save_path) or ".", exist_ok=True)
             with open(raw_save_path, "w", encoding="utf-8") as f:
                 f.write(resp.text)
         if resp.status_code != 200:
             return {"status": resp.status_code, "output": []}
-        data = resp.json().get("data", {})
+        data = resp.json()
         results = [
             {
                 "title": item.get("title", ""),
-                "link": item.get("url", ""),
-                "snippet": item.get("description", ""),
+                "link": item.get("link", ""),
+                "snippet": item.get("snippet", ""),
                 "date": item.get("date", ""),
                 "query": query,
             }
-            for item in data.get("organic_results", [])
+            for item in data.get("organic", [])
         ]
         return {"status": resp.status_code, "output": results}
     except Exception as e:

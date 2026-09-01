@@ -58,6 +58,9 @@ class JudgeConfig(BaseModel):
     base_url: str = "https://openrouter.ai/api/v1"
     model_id: str = "google/gemini-3-flash-preview"
     enabled: bool = True
+    # Some gateways expose Gemini models through an OpenAI-compatible endpoint
+    # instead of Google's native generateContent API.
+    openai_compatible: bool = False
 
 
 class DefaultsConfig(BaseModel):

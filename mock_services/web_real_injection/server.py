@@ -269,7 +269,9 @@ def web_search(req: SearchRequest) -> dict[str, Any]:
         return resp
 
     # Check cache
-    cache_k = _cache_key("search", f"{req.query}:{req.max_results}")
+    # Version the search cache when changing upstream providers. This avoids
+    # reusing empty Novada responses produced with a yibu Serper key.
+    cache_k = _cache_key("search_yibu_v1", f"{req.query}:{req.max_results}")
     cached = _cache_get(cache_k)
     if cached:
         resp = _inject_search_results(cached)

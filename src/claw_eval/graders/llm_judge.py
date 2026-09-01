@@ -64,12 +64,13 @@ class LLMJudge:
         model_id: str = "google/gemini-2.5-flash",
         api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1",
+        openai_compatible: bool = False,
     ) -> None:
         self.client = OpenAI(api_key=api_key or "dummy", base_url=base_url)
         self.model_id = model_id
         self._call_log: list[dict] = []
 
-        self._use_gemini = "gemini" in model_id.lower()
+        self._use_gemini = "gemini" in model_id.lower() and not openai_compatible
         if self._use_gemini:
             self._gemini_api_key = api_key or "dummy"
             self._gemini_model = model_id.split("/")[-1]

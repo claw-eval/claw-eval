@@ -42,9 +42,9 @@ _BASH = ToolSpec(
 _READ = ToolSpec(
     name="Read",
     description=(
-        "Reads a file from the filesystem. Can read text files, images, and PDFs. "
-        "For images, returns base64-encoded frames for visual inspection. "
-        "For PDFs, use the pages parameter to render specific pages as images."
+        "Reads a text-based file from the filesystem. Supports text, code, and structured-text files only. "
+        "Do not use for images, PDFs, or other binary files. Use task-provided OCR, caption, or document tools instead. "
+        "If no suitable task-provided tool exists for a non-text file, report that the file cannot be read with Read; do not attempt to output, decode, render, or inspect binary content."
     ),
     input_schema={
         "type": "object",
@@ -60,10 +60,6 @@ _READ = ToolSpec(
             "limit": {
                 "type": "integer",
                 "description": "The number of lines to read.",
-            },
-            "pages": {
-                "type": "string",
-                "description": "Page range for PDF files (e.g., '1-5', '3', '1,3,5').",
             },
         },
         "required": ["file_path"],

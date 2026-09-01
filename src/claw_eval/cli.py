@@ -69,6 +69,7 @@ def _make_judge(cfg, args):
         model_id=model_id,
         api_key=api_key,
         base_url=cfg.judge.base_url,
+        openai_compatible=cfg.judge.openai_compatible,
     )
 
 
@@ -332,6 +333,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     task_yaml = _resolve_task_yaml(args.task)
     task = TaskDefinition.from_yaml(task_yaml)
     tasks_dir = _resolve_tasks_dir(task_yaml)
+    os.environ["CLAW_TASK_ID"] = task.task_id
 
     port_offset = getattr(args, "port_offset", 0) or 0
     if port_offset:
@@ -805,6 +807,7 @@ def _run_single_task(
     task_yaml = _resolve_task_yaml(task_dir)
     task = TaskDefinition.from_yaml(task_yaml)
     tasks_dir = _resolve_tasks_dir(task_yaml)
+    os.environ["CLAW_TASK_ID"] = task.task_id
 
     if port_offset:
         task.apply_port_offset(port_offset)
@@ -828,6 +831,7 @@ def _run_single_task(
             model_id=judge_model or cfg.judge.model_id,
             api_key=cfg.judge.api_key,
             base_url=cfg.judge.base_url,
+            openai_compatible=cfg.judge.openai_compatible,
         )
 
     # Resolve sandbox mode
