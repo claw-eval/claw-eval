@@ -1117,6 +1117,37 @@ def _fmt_duration(seconds: float) -> str:
     return f"{h}h{m:02d}m"
 
 
+def _recompute_batch_counters(results: list[dict]) -> tuple[float, int, int, int]:
+    """Recompute (score_sum, finished_tasks, n_pass_hat, n_pass_at) from results.
+
+    Mirrors the incremental accounting in ``cmd_batch``: every result counts as
+    a finished task, errored tasks contribute nothing to the score or pass
+    counts, and non-errored tasks contribute the mean trial ``task_score`` plus
+    ``pass^k`` / ``pass@k`` when all / any trials passed.
+
+    Used after ``--rerun-errors`` and ``--continue`` merges, where ``results``
+    also contains tasks that were not executed in the current invocation and
+    the invocation-local counters therefore only cover a subset.
+    """
+    score_sum = 0.0
+    finished_tasks = 0
+    n_pass_hat = 0
+    n_pass_at = 0
+    for res in results:
+        finished_tasks += 1
+        if res.get("error"):
+            continue
+        trials_list = res.get("trials") or []
+        if not trials_list:
+            continue
+        score_sum += sum(tr["task_score"] for tr in trials_list) / len(trials_list)
+        if all(tr["passed"] for tr in trials_list):
+            n_pass_hat += 1
+        if any(tr["passed"] for tr in trials_list):
+            n_pass_at += 1
+    return score_sum, finished_tasks, n_pass_hat, n_pass_at
+
+
 def cmd_batch(args: argparse.Namespace) -> None:
     """Run all (or filtered) tasks in parallel."""
     _apply_proxy(getattr(args, "proxy", None))
@@ -1428,6 +1459,15 @@ def cmd_batch(args: argparse.Namespace) -> None:
             results = all_from_traces
             total = len(results)
             print(f"\n[continue] Rebuilt results from {total} task(s) in trace directory")
+
+    # --- Recompute summary counters from the final merged results ---
+    # After a --rerun-errors / --continue merge, `results` also contains tasks
+    # that were not executed in this invocation, so the counters accumulated in
+    # the worker loop above only cover a subset. Recompute them from the final
+    # collection so avg score, pass^k and pass@k stay consistent with `total`
+    # and the persisted batch_summary.json (identical by construction when no
+    # merge happened).
+    score_sum, finished_tasks, n_pass_hat, n_pass_at = _recompute_batch_counters(results)
 
     # --- Summary ---
     print(f"\n{'='*60}")
