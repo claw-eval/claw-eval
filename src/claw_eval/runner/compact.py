@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from ..models.content import ImageBlock, TextBlock
+from ..models.content import TextBlock
 from ..models.message import Message
 
 if TYPE_CHECKING:
@@ -63,7 +63,7 @@ def _count_turn_boundary(messages: list[Message], keep_recent: int) -> int:
             if turns_seen >= keep_recent:
                 return i  # everything before this index is "old"
     # Not enough turns to compact anything
-    return len(messages)
+    return 2
 
 
 def micro_compact(
@@ -233,6 +233,21 @@ def do_auto_compact(
     min_keep_idx = max(2, len(messages) - keep_recent_on_summary)
     split_idx = min(protect_idx, min_keep_idx)
 
+    # Keep every tool call together with all its results. Either budget can
+    # otherwise split a parallel exchange, leaving an incomplete summary
+    # request and orphaned tool results in the retained conversation.
+    pending: set[str] = set()
+    safe_split = 2
+    for i in range(2, split_idx):
+        for block in messages[i].content:
+            if block.type == "tool_use":
+                pending.add(block.id)
+            elif block.type == "tool_result":
+                pending.discard(block.tool_use_id)
+        if not pending:
+            safe_split = i + 1
+    split_idx = safe_split
+
     if split_idx <= 2:
         return messages  # nothing old enough to summarise
 
@@ -252,9 +267,13 @@ def do_auto_compact(
     # Call provider for summary (no tools needed)
     try:
         summary_response, _ = provider.chat(summarise_msgs, tools=None)
-        summary_text = summary_response.text or "(summary failed)"
-    except Exception as exc:
-        summary_text = f"(auto-compact summary failed: {exc})"
+        summary_text = summary_response.text
+    except Exception:
+        print("[auto-compact] summary failed; keeping original history")
+        return messages
+    if not summary_text.strip():
+        print("[auto-compact] empty summary; keeping original history")
+        return messages
 
     # Rebuild messages
     summary_user_msg = Message(
