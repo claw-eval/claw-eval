@@ -8,10 +8,12 @@ from pathlib import Path
 
 from ..models.trace import (
     AuditSnapshot,
+    CompactEvent,
     GradingResult,
     MediaLoad,
     ToolDispatch,
     TraceEnd,
+    TraceEvent,
     TraceMessage,
     TraceStart,
 )
@@ -24,10 +26,11 @@ _EVENT_MAP = {
     "media_load": MediaLoad,
     "trace_end": TraceEnd,
     "grading_result": GradingResult,
+    "compact": CompactEvent,
 }
 
 
-def read_events(path: str | Path) -> Iterator[TraceStart | TraceMessage | ToolDispatch | AuditSnapshot | MediaLoad | TraceEnd]:
+def read_events(path: str | Path) -> Iterator[TraceEvent]:
     """Parse each JSONL line by its ``type`` discriminator field."""
     with open(path) as fh:
         for line in fh:
@@ -49,7 +52,7 @@ def load_trace(
 
     Returns (start, messages, dispatches, media_events, end, audit_data).
     audit_data is keyed by service_name from AuditSnapshot events.
-    GradingResult events are silently skipped (they are post-hoc additions).
+    GradingResult and CompactEvent metadata are skipped when partitioning.
     """
     start: TraceStart | None = None
     messages: list[TraceMessage] = []
@@ -74,6 +77,8 @@ def load_trace(
                 end = event
             case GradingResult():
                 pass  # post-hoc grading data; not needed for re-grading
+            case CompactEvent():
+                pass  # execution metadata; original messages remain in the trace
 
     if start is None:
         raise ValueError(f"No TraceStart event found in {path}")
