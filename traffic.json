@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-11-15T10:49:25Z",
+  "updated_at": "2026-11-16T11:12:18Z",
   "since": "2026-07-18",
   "clones_total": 34024,
   "clones_uniques_sum": 6557,
   "views_total": 14666,
   "views_uniques_sum": 5384,
   "hf_downloads_all_time": 35456,
-  "modelscope_downloads": 48666,
-  "dataset_downloads_total": 84122,
+  "modelscope_downloads": 49000,
+  "dataset_downloads_total": 84456,
   "clones": {
     "2026-07-18": {
       "count": 102,
