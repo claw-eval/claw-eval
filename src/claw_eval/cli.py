@@ -1544,6 +1544,38 @@ def cmd_batch(args: argparse.Namespace) -> None:
     print(f"  Summary saved to {summary_file}")
 
 
+def cmd_trend(args: argparse.Namespace) -> None:
+    """Analyze score trends across sequential batch runs (issue #27)."""
+    from .analysis import RunTrendAnalyzer
+
+    analyzer = RunTrendAnalyzer(args.batch_dirs, window=args.window)
+    report = analyzer.analyze()
+
+    if not report.runs:
+        print("No batch_results.json found in the given directories.")
+        if args.exit_on_regression:
+            sys.exit(1)
+        return
+
+    print(f"Batch trend analysis (window={report.window})")
+    for r in report.runs:
+        print(f"  {r.trace_dir}  mean={r.mean_score:.3f}  pass={r.pass_rate:.2f}  tasks={r.task_count}")
+    print()
+    if report.mean_score_trend is not None:
+        t = report.mean_score_trend
+        print(f"  mean_score: slope={t.slope:+.3f}/run  {t.direction.upper()}" + ("  ⚠" if t.direction == "degrading" else ""))
+        t = report.pass_rate_trend
+        print(f"  pass_rate:  slope={t.slope:+.3f}/run  {t.direction.upper()}" + ("  ⚠" if t.direction == "degrading" else ""))
+        print()
+        if report.any_regression:
+            print("Regression detected.")
+        else:
+            print("No regression detected.")
+
+    if args.exit_on_regression and report.any_regression:
+        sys.exit(1)
+
+
 def cmd_cleanup(args: argparse.Namespace) -> None:
     """Remove all claw-eval Docker containers."""
     from .config import load_config
@@ -1661,6 +1693,20 @@ def main(argv: list[str] | None = None) -> None:
     p_cleanup = sub.add_parser("cleanup", help="Remove all claw-eval Docker containers")
     p_cleanup.add_argument("--config", default=None, help="Path to config.yaml")
 
+    # trend
+    p_trend = sub.add_parser(
+        "trend", help="Analyze score trends across sequential batch runs"
+    )
+    p_trend.add_argument(
+        "batch_dirs", nargs="+", metavar="TRACE_DIR",
+        help="Ordered batch result directories (each containing batch_results.json). "
+             "Shell glob patterns expand before the CLI sees them, e.g. 'claw-eval trend traces/2026-04-*/'."
+    )
+    p_trend.add_argument("--window", type=int, default=10,
+                         help="Only consider the last N runs (default: 10)")
+    p_trend.add_argument("--exit-on-regression", action="store_true",
+                         help="Exit with code 1 when any metric shows a degrading trend (CI gate)")
+
     # list
     p_list = sub.add_parser("list", help="List available tasks")
     p_list.add_argument("--tasks-dir", default="tasks", help="Tasks directory")
@@ -1679,6 +1725,8 @@ def main(argv: list[str] | None = None) -> None:
         cmd_batch(args)
     elif args.command == "cleanup":
         cmd_cleanup(args)
+    elif args.command == "trend":
+        cmd_trend(args)
     elif args.command == "list":
         cmd_list(args)
     else:
